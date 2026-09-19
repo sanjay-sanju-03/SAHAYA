@@ -47,6 +47,15 @@ class EvaluationCheck(BaseModel):
     required_value: Optional[str] = None
     resource_value: Optional[str] = None
 
+    # Structured evidence used by the WHY and comparison interfaces.
+    capability: Optional[str] = None
+    required: bool = True
+    person_source: Optional[str] = None
+    person_value: Optional[str] = None
+    resource_source: Optional[str] = None
+    resource_verified_at: Optional[datetime] = None
+    resource_freshness: Optional[str] = None
+
 
 # ---------------------------------------------------------------------------
 # Full evaluation report for one (incident, resource) pair
@@ -57,6 +66,10 @@ class EvaluationReport(BaseModel):
     incident_id: str
     resource_id: str
     resource_name: str
+    requirement_version: int = 0
+    resource_version: int = 0
+    is_current: bool = True
+    outdated_reason: Optional[str] = None
 
     # The overall status — determined by priority logic or resource applicability.
     status: EvaluationStatus
@@ -81,4 +94,27 @@ class EvaluationReport(BaseModel):
 class BatchEvaluationResponse(BaseModel):
     incident_id: str
     evaluations: list[EvaluationReport]
+    evaluated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class PersonEvaluation(BaseModel):
+    person_id: str
+    display_name: str
+    requirement_version: int
+    result: EvaluationReport
+
+
+class GroupEvaluation(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    incident_id: str
+    resource_id: str
+    resource_name: str
+    resource_version: int
+    people: list[PersonEvaluation] = Field(default_factory=list)
+    group_status: EvaluationStatus
+    capacity_status: CheckStatus
+    capacity_required: int
+    capacity_available: Optional[int] = None
+    is_current: bool = True
+    outdated_reason: Optional[str] = None
     evaluated_at: datetime = Field(default_factory=datetime.utcnow)

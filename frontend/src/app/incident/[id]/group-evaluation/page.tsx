@@ -1,0 +1,8 @@
+"use client";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { evaluateGroup, GroupEvaluation } from "@/lib/api";
+import { Loader2 } from "lucide-react";
+import { StatusBadge } from "@/components/sahaya/StatusBadge";
+export default function GroupEvaluationPage(){const {id}=useParams() as {id:string};const [items,setItems]=useState<GroupEvaluation[]>([]);useEffect(()=>{evaluateGroup(id).then(r=>setItems(r.evaluations)).catch(console.error)},[id]);if(!items.length)return <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto"/></div>;return <div className="page-container"><Link href={`/incident/${id}/people`} className="text-sm text-gray-500">← Back to People</Link><h1 className="text-display mt-5 mb-2">Group resource evaluation</h1><p className="text-gray-600 mb-6">Every person is evaluated independently; capacity is checked separately.</p><div className="space-y-4">{items.map(item=><section key={item.resource_id} className="card p-5"><div className="flex justify-between gap-3"><div><p className="metric-label">GROUP RESULT</p><h2 className="text-xl font-bold">{item.resource_name}</h2></div><StatusBadge status={item.group_status}/></div><p className="text-sm text-gray-600 mt-3">Capacity: {item.capacity_required} people required · {item.capacity_available ?? "Unknown"} available · {item.capacity_status}</p><div className="grid sm:grid-cols-3 gap-2 mt-4">{item.people.map(person=><div key={person.person_id} className="rounded-lg bg-gray-50 p-3"><p className="text-xs font-semibold">{person.display_name}</p><div className="mt-2"><StatusBadge status={person.result.status}/></div></div>)}</div></section>)}</div></div>}

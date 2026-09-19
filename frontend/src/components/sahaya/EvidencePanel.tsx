@@ -1,6 +1,7 @@
 import { EvaluationReport } from "@/lib/api";
 import { ConstraintCard } from "./ConstraintCard";
 import { StatusBadge } from "./StatusBadge";
+import { WhyDecisionPanel } from "./WhyDecisionPanel";
 
 interface EvidencePanelProps {
   report: EvaluationReport;
@@ -50,6 +51,7 @@ export function EvidencePanel({ report }: EvidencePanelProps) {
           <ConstraintCard key={`${check.constraint}-${idx}`} check={check} />
         ))}
       </div>
+      <WhyDecisionPanel report={report} />
     </div>
   );
 }

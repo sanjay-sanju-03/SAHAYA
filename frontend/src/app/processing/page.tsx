@@ -37,14 +37,7 @@ function ProcessingScreen() {
           if (isMounted) {
             setStep(3);
             setTimeout(() => {
-              if (incident.needs_manual_review) {
-                // Skip to manual review or summary
-                router.push(`/incident/${id}`);
-              } else if (incident.status === "needs_clarification") {
-                router.push(`/incident/${id}/clarify`);
-              } else {
-                router.push(`/incident/${id}`);
-              }
+              router.push(`/incident/${id}`);
             }, 500);
           }
         }
@@ -82,7 +75,7 @@ function ProcessingScreen() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/" className="btn-primary">Create New Case</Link>
-            <Link href="/incident/demo-001/clarify" className="btn-secondary">Try Demo Scenario</Link>
+            <Link href="/incident/demo-001/review" className="btn-secondary">Try Demo Scenario</Link>
           </div>
         </div>
       </div>

@@ -56,7 +56,8 @@ export function ResourceCard({ report, incidentId, resourceType }: ResourceCardP
             </p>
           )}
         </div>
-        <div className="text-teal-600 shrink-0">
+        <div className="text-teal-600 shrink-0 flex items-center gap-1 text-xs font-bold">
+          <span>VIEW WHY</span>
           <ChevronRight className="w-6 h-6" />
         </div>
       </div>

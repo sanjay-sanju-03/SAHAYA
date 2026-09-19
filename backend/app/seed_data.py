@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from app.models.incident import (
+    CasePerson,
     Incident, PersonProfile, Constraint, ConstraintSource,
     IncidentType, IncidentStatus, Urgency, MobilityType, AgeGroup,
 )
@@ -144,11 +145,22 @@ SEED_RESOURCES: list[Resource] = [
 # (Flood at home. Mother is in a wheelchair. She cannot use stairs.)
 # ---------------------------------------------------------------------------
 
+DEMO_PERSON = PersonProfile(
+    age_group=AgeGroup.elderly,
+    mobility=MobilityType.wheelchair,
+    wheelchair_required=True,
+    stairs_allowed=False,
+    ramp_usable=None,
+    caregiver_required=True,
+    accessible_transport_required=True,
+    language="ml",
+)
+
 DEMO_INCIDENT = Incident(
     id="demo-001",
     created_at=datetime(2026, 9, 19, 22, 0, 0),
     updated_at=datetime(2026, 9, 19, 22, 5, 0),
-    status=IncidentStatus.needs_clarification,
+    status=IncidentStatus.review_required,
     incident_type=IncidentType.flood,
     urgency=Urgency.high,
     location_text="Unknown — clarification needed",
@@ -156,16 +168,8 @@ DEMO_INCIDENT = Incident(
         "വീട്ടിൽ വെള്ളം കയറുന്നു. അമ്മ വീൽചെയറിലാണ്. "
         "അവൾക്ക് പടികൾ ഇറങ്ങാൻ കഴിയില്ല."
     ),
-    person=PersonProfile(
-        age_group=AgeGroup.elderly,
-        mobility=MobilityType.wheelchair,
-        wheelchair_required=True,
-        stairs_allowed=False,
-        ramp_usable=None,                   # unknown — pending clarification
-        caregiver_required=True,
-        accessible_transport_required=True,
-        language="ml",
-    ),
+    person=DEMO_PERSON.model_copy(deep=True),
+    ai_person=DEMO_PERSON.model_copy(deep=True),
     constraints=[
         Constraint(
             constraint_type="mobility",
@@ -192,6 +196,21 @@ DEMO_INCIDENT = Incident(
     extraction_confidence=0.94,
     needs_manual_review=False,
 )
+
+DEMO_GROUP_INCIDENT = Incident(
+    id="demo-group-001",
+    status=IncidentStatus.ready_for_evaluation,
+    incident_type=IncidentType.flood,
+    urgency=Urgency.high,
+    location_text="Kozhikode",
+    original_text="Seeded multi-person emergency demonstration.",
+)
+
+DEMO_GROUP_PEOPLE = [
+    CasePerson(id="demo-group-person-1", incident_id="demo-group-001", display_name="Person 1", ai_person=PersonProfile(wheelchair_required=True, stairs_allowed=False, hearing_support_required=True), person=PersonProfile(wheelchair_required=True, stairs_allowed=False, hearing_support_required=True), requirements_reviewed=True, requirement_version=1),
+    CasePerson(id="demo-group-person-2", incident_id="demo-group-001", display_name="Person 2", ai_person=PersonProfile(caregiver_required=True), person=PersonProfile(caregiver_required=True), requirements_reviewed=True, requirement_version=1),
+    CasePerson(id="demo-group-person-3", incident_id="demo-group-001", display_name="Person 3", ai_person=PersonProfile(), person=PersonProfile(), requirements_reviewed=True, requirement_version=1),
+]
 
 # ---------------------------------------------------------------------------
 # Helper: resource lookup by ID

@@ -72,8 +72,14 @@ export default function ResourceDetailPage() {
             </>
           ) : isUnknown ? (
             <>
-              <p className="text-unknown-700 text-sm font-medium">UNKNOWN — We do not have enough verified information yet.</p>
-              <Link href={`/incident/${id}/clarify`} className="btn-primary w-full sm:w-auto">RESOLVE MISSING INFORMATION</Link>
+              <div>
+                <p className="text-unknown-700 text-sm font-medium">UNKNOWN — We do not have enough verified information yet.</p>
+                <p className="text-sm text-gray-500 mt-1">Verify the resource record or resolve missing case information before assigning it.</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <Link href={`/resource/${rid}/verify`} className="btn-primary w-full sm:w-auto">VERIFY RESOURCE</Link>
+                <Link href={`/incident/${id}/clarify`} className="btn-secondary w-full sm:w-auto">RESOLVE CASE INFO</Link>
+              </div>
             </>
           ) : isNotApplicable ? (
             <p className="w-full text-sm font-medium text-gray-600">NOT APPLICABLE — This resource type is not required for the current case, so no compatibility decision was made.</p>

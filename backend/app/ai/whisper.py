@@ -33,8 +33,11 @@ class WhisperTranscriber:
             response = await self._client.audio.transcriptions.create(
                 model="whisper-1",
                 file=audio_file,
-                language="ml",          # Malayalam hint — improves accuracy
                 response_format="text",
+                prompt=(
+                    "This is an emergency report spoken in Malayalam or English. "
+                    "Transcribe it faithfully, preserving names, places, and accessibility needs."
+                ),
             )
             return response.strip()
         except Exception as e:

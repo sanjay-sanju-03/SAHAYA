@@ -18,6 +18,7 @@ from app.api.incidents import router as incidents_router
 from app.api.resources import router as resources_router
 from app.api.evaluations import router as evaluations_router
 from app.api.audio import router as audio_router
+from app.api.people import group_router, router as people_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -60,6 +61,8 @@ app.include_router(incidents_router)
 app.include_router(resources_router)
 app.include_router(evaluations_router)
 app.include_router(audio_router)
+app.include_router(people_router)
+app.include_router(group_router)
 
 
 # ---------------------------------------------------------------------------

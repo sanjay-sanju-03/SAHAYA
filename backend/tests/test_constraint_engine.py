@@ -229,6 +229,23 @@ class TestTransport:
 
 
 # ---------------------------------------------------------------------------
+# Regression — reviewed requirements, not raw AI proposals, drive evaluation
+# ---------------------------------------------------------------------------
+
+class TestReviewedRequirements:
+    def test_human_reviewed_false_disables_ai_proposed_wheelchair_requirement(self):
+        """The engine must use the coordinator-approved profile, never the AI proposal."""
+        ai_profile = PersonProfile(wheelchair_required=True)
+        reviewed_profile = ai_profile.model_copy(update={"wheelchair_required": False})
+        resource = shelter(wheelchair_access=False, available_capacity=20)
+
+        report = evaluate(reviewed_profile, resource, "test-incident")
+
+        assert report.status == EvaluationStatus.safe
+        assert all(check.constraint != "wheelchair_access" for check in report.checks)
+
+
+# ---------------------------------------------------------------------------
 # Tests — Priority logic (BLOCKED overrides UNKNOWN)
 # ---------------------------------------------------------------------------
 

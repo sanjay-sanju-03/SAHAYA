@@ -3,13 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { getIncident, getMissingInfo, Incident } from "@/lib/api";
+import { getIncident, Incident } from "@/lib/api";
 import { Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 export default function CaseSummaryPage() {
   const { id } = useParams() as { id: string };
   const [incident, setIncident] = useState<Incident | null>(null);
-  const [missing, setMissing] = useState<boolean>(false);
   const [caseNotFound, setCaseNotFound] = useState(false);
 
   useEffect(() => {
@@ -17,12 +16,6 @@ export default function CaseSummaryPage() {
       try {
         const inc = await getIncident(id);
         setIncident(inc);
-
-        // Also check if there's missing information
-        const info = await getMissingInfo(id);
-        if (!info.complete) {
-          setMissing(true);
-        }
       } catch (err) {
         if (err instanceof Error && err.message.startsWith("API 404:")) {
           setCaseNotFound(true);
@@ -45,7 +38,7 @@ export default function CaseSummaryPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/" className="btn-primary">Create New Case</Link>
-            <Link href="/incident/demo-001/clarify" className="btn-secondary">Try Demo Scenario</Link>
+            <Link href="/incident/demo-001/review" className="btn-secondary">Try Demo Scenario</Link>
           </div>
         </div>
       </div>
@@ -82,7 +75,7 @@ export default function CaseSummaryPage() {
         <div className="grid grid-cols-3 gap-3 mt-6">
           <div className="metric-card"><p className="metric-label">ACTIVE REQUIREMENTS</p><p className="text-2xl font-bold">{activeRequirements.length}</p></div>
           <div className="metric-card"><p className="metric-label">RESOURCES</p><p className="text-2xl font-bold">5</p></div>
-          <div className="metric-card"><p className="metric-label">STATUS</p><p className="text-sm font-bold text-teal-700">{missing ? "REVIEW" : "READY"}</p></div>
+          <div className="metric-card"><p className="metric-label">REVIEW</p><p className={`text-sm font-bold ${incident.requirements_reviewed ? "text-safe-700" : "text-unknown-700"}`}>{incident.requirements_reviewed ? "CONFIRMED" : "REQUIRED"}</p></div>
         </div>
       </div>
 
@@ -128,19 +121,20 @@ export default function CaseSummaryPage() {
         </div>
       )}
 
-      {missing ? (
+      {!incident.requirements_reviewed ? (
         <div className="card p-6 border-unknown-400 bg-unknown-50">
           <div className="flex items-center gap-2 text-unknown-700 font-bold mb-2">
             <AlertTriangle className="w-5 h-5" />
-            CRITICAL INFORMATION MISSING
+            REQUIREMENT REVIEW REQUIRED
           </div>
-          <p className="mb-4 text-unknown-700">We need more information before evaluating resources safely.</p>
-          <Link href={`/incident/${id}/clarify`} className="btn-primary w-full sm:w-auto">
-            Provide Clarification
+          <p className="mb-4 text-unknown-700">Review the AI-proposed requirements before the deterministic engine evaluates resources.</p>
+          <Link href={`/incident/${id}/review`} className="btn-primary w-full sm:w-auto">
+            Review Requirements
           </Link>
         </div>
       ) : (
         <div className="text-center">
+          <p className="text-sm text-safe-700 font-semibold mb-3">✓ Requirements reviewed · Version {incident.requirement_version}</p>
           <Link href={`/incident/${id}/resources`} className="btn-primary w-full sm:w-auto text-lg py-4 px-8">
             Evaluate Resources
           </Link>

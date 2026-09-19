@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { ChangeEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createIncident, transcribeAudio } from "@/lib/api";
 import { AudioRecorder } from "@/components/sahaya/AudioRecorder";
@@ -11,16 +11,20 @@ export default function Home() {
   const [text, setText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageName, setImageName] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const imageInput = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!text.trim()) return;
+    if (!text.trim() && !imageUrl) return;
 
     setIsSubmitting(true);
     setError(null);
     try {
-      const incident = await createIncident(text);
+      const reportText = text.trim() || "An incident image was attached. Review visual observations carefully and request clarification for any unknown accessibility requirements.";
+      const incident = await createIncident(reportText, imageUrl || undefined);
       router.push(`/processing?id=${incident.id}`);
     } catch (err: unknown) {
       console.error(err);
@@ -29,9 +33,36 @@ export default function Home() {
     }
   };
 
+  const handleImage = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Please choose an image file.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Please choose an image smaller than 5 MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageUrl(reader.result as string);
+      setImageName(file.name);
+      setError(null);
+    };
+    reader.onerror = () => setError("The selected image could not be read.");
+    reader.readAsDataURL(file);
+  };
+
+  const clearImage = () => {
+    setImageUrl(null);
+    setImageName(null);
+    if (imageInput.current) imageInput.current.value = "";
+  };
+
   const handleDemo = () => {
     // Demo mode explicitly skips creating a new incident and uses the pre-extracted demo case
-    router.push(`/incident/demo-001/clarify`);
+    router.push(`/incident/demo-001/review`);
   };
 
   const handleAudioReady = async (blob: Blob) => {
@@ -85,11 +116,24 @@ export default function Home() {
 
         <div className="flex gap-4 mb-6">
           <AudioRecorder onAudioReady={handleAudioReady} isTranscribing={isTranscribing} />
-          <button className="btn-secondary w-full justify-center">
+          <input ref={imageInput} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleImage} className="hidden" />
+          <button type="button" onClick={() => imageInput.current?.click()} className="btn-secondary w-full justify-center">
             <Upload className="w-5 h-5 mr-2 text-navy-600" />
-            Add Image
+            {imageName ? "Change Incident Image" : "Add Incident Image"}
           </button>
         </div>
+
+        {imageUrl && (
+          <div className="mb-5 rounded-xl border border-gray-200 overflow-hidden bg-gray-50">
+            {/* Local preview only; the image is sent with the incident when analyzed. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={imageUrl} alt="Selected incident" className="w-full max-h-56 object-cover" />
+            <div className="flex items-center justify-between gap-3 p-3 text-sm">
+              <span className="truncate text-gray-600">{imageName}</span>
+              <button type="button" onClick={clearImage} className="text-blocked-700 font-semibold shrink-0">Remove</button>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <textarea
@@ -102,7 +146,7 @@ export default function Home() {
           <button
             type="submit"
             className="btn-primary w-full text-lg py-4"
-            disabled={!text.trim() || isSubmitting || isTranscribing}
+            disabled={(!text.trim() && !imageUrl) || isSubmitting || isTranscribing}
           >
             {isSubmitting ? "Analyzing Incident..." : (
               <>

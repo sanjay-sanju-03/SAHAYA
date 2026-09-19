@@ -1,16 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { evaluateResources, EvaluationReport, getResources, Resource } from "@/lib/api";
 import { ResourceCard } from "@/components/sahaya/ResourceCard";
 import { Loader2 } from "lucide-react";
+import Link from "next/link";
 
 export default function ResourcesPage() {
   const { id } = useParams() as { id: string };
+  const router = useRouter();
   const [evaluations, setEvaluations] = useState<EvaluationReport[]>([]);
   const [resources, setResources] = useState<Record<string, Resource>>({});
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<string[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -19,13 +22,17 @@ export default function ResourcesPage() {
         setEvaluations(evaluationResult.evaluations);
         setResources(Object.fromEntries(resourceList.map((resource) => [resource.id, resource])));
       } catch (err) {
+        if (err instanceof Error && err.message.startsWith("API 409:")) {
+          router.replace(`/incident/${id}/review`);
+          return;
+        }
         console.error(err);
       } finally {
         setLoading(false);
       }
     }
     load();
-  }, [id]);
+  }, [id, router]);
 
   if (loading) {
     return (
@@ -49,12 +56,29 @@ export default function ResourcesPage() {
   const blockedCount = sorted.filter((report) => report.status === "BLOCKED").length;
   const notApplicableCount = sorted.filter((report) => report.status === "NOT_APPLICABLE").length;
 
+  const toggleSelected = (resourceId: string) => {
+    setSelected((current) => current.includes(resourceId)
+      ? current.filter((id) => id !== resourceId)
+      : current.length < 4 ? [...current, resourceId] : current);
+  };
+
   const renderGroup = (title: string, reports: EvaluationReport[], resourceType: string) => (
     reports.length > 0 && (
       <section className="mb-8">
         <h2 className="metric-label border-b border-gray-200 pb-3 mb-3">{title}</h2>
         <div className="space-y-2">
-          {reports.map((report) => <ResourceCard key={report.resource_id} report={report} incidentId={id} resourceType={resourceType} />)}
+          {reports.map((report) => (
+            <div key={report.resource_id} className="flex items-stretch gap-2">
+              <button
+                type="button"
+                onClick={() => toggleSelected(report.resource_id)}
+                aria-pressed={selected.includes(report.resource_id)}
+                className={`w-11 shrink-0 rounded-xl border text-lg font-bold ${selected.includes(report.resource_id) ? "border-teal-600 bg-teal-50 text-teal-700" : "border-gray-200 text-gray-400 hover:border-gray-400"}`}
+                title={`Select ${report.resource_name} for comparison`}
+              >{selected.includes(report.resource_id) ? "✓" : "+"}</button>
+              <div className="flex-1"><ResourceCard report={report} incidentId={id} resourceType={resourceType} /></div>
+            </div>
+          ))}
         </div>
       </section>
     )
@@ -80,6 +104,11 @@ export default function ResourcesPage() {
         <p><span className="font-semibold text-unknown-700">UNKNOWN</span><br />Required capability not verified</p>
         <p><span className="font-semibold text-blocked-700">BLOCKED</span><br />Requirement conflicts with resource</p>
         <p><span className="font-semibold text-gray-600">NOT APPLICABLE</span><br />Resource type is not required</p>
+      </div>
+
+      <div className="sticky bottom-4 z-10 rounded-xl border border-navy-100 bg-white/95 backdrop-blur p-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3 mb-8">
+        <p className="text-sm font-medium">{selected.length} resource{selected.length === 1 ? "" : "s"} selected <span className="text-gray-500">· Choose 2–4 for evidence-based comparison</span></p>
+        <Link href={`/incident/${id}/compare?resources=${selected.join(",")}`} className={`btn-primary ${selected.length < 2 ? "pointer-events-none opacity-50" : ""}`}>COMPARE {selected.length || ""} RESOURCES</Link>
       </div>
 
       {renderGroup("SHELTERS", shelters, "shelter")}

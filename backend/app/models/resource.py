@@ -8,7 +8,8 @@ All capability fields use Optional[bool]:
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
+import os
 from enum import Enum
 from typing import Optional
 from uuid import uuid4
@@ -27,6 +28,23 @@ class ResourceStatus(str, Enum):
     full = "full"
     unavailable = "unavailable"
     unknown = "unknown"
+
+
+class FreshnessStatus(str, Enum):
+    current = "CURRENT"
+    aging = "AGING"
+    stale = "STALE"
+    never_verified = "NEVER_VERIFIED"
+
+
+class CapabilityVerification(BaseModel):
+    """Provenance for one resource capability value."""
+    value: Optional[bool] = None
+    verification_status: str = "unverified"
+    verified_at: Optional[datetime] = None
+    verified_by: Optional[str] = None
+    source: Optional[str] = None
+    notes: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -74,9 +92,71 @@ class Resource(BaseModel):
     available_capacity: Optional[int] = None
 
     capabilities: ResourceCapabilities = Field(default_factory=ResourceCapabilities)
+    capability_verifications: dict[str, CapabilityVerification] = Field(default_factory=dict)
+    resource_version: int = 0
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
     # Demo/seed flag
     is_demo: bool = False
+
+
+class ResourceVerificationRequest(BaseModel):
+    """Coordinator verification submission for one or more capabilities."""
+    capabilities: dict[str, str]
+    coordinator_id: str = Field(..., min_length=1)
+    source: str = Field(..., min_length=1, max_length=100)
+    notes: Optional[str] = Field(default=None, max_length=1000)
+
+
+CAPABILITY_FIELDS = (
+    "ground_floor",
+    "stairs_required",
+    "ramp",
+    "wheelchair_access",
+    "accessible_toilet",
+    "wheelchair_transport",
+    "caregiver_support",
+    "visual_communication_support",
+    "hearing_support",
+)
+
+
+def freshness_status(resource: Resource, capability: str, now: Optional[datetime] = None) -> FreshnessStatus:
+    """Return configurable freshness for a capability's supporting record."""
+    value = getattr(resource.capabilities, capability)
+    if value is None:
+        return FreshnessStatus.never_verified
+
+    verification = resource.capability_verifications.get(capability)
+    verified_at = verification.verified_at if verification else resource.capabilities.last_verified_at
+    if verified_at is None:
+        return FreshnessStatus.never_verified
+
+    current_time = now or datetime.utcnow()
+    age = current_time - verified_at
+    aging_days = int(os.getenv("RESOURCE_FRESHNESS_AGING_DAYS", "7"))
+    stale_days = int(os.getenv("RESOURCE_FRESHNESS_STALE_DAYS", "14"))
+    if age >= timedelta(days=stale_days):
+        return FreshnessStatus.stale
+    if age >= timedelta(days=aging_days):
+        return FreshnessStatus.aging
+    return FreshnessStatus.current
+
+
+def resource_for_evaluation(resource: Resource, now: Optional[datetime] = None) -> Resource:
+    """Create a conservative resource view without changing the rule engine.
+
+    A stale or never-verified positive capability becomes UNKNOWN. Explicit
+    negatives remain FALSE, preserving evidence of a known conflict.
+    """
+    evaluated_resource = resource.model_copy(deep=True)
+    for field in CAPABILITY_FIELDS:
+        value = getattr(evaluated_resource.capabilities, field)
+        if value is True and freshness_status(resource, field, now) in (
+            FreshnessStatus.stale,
+            FreshnessStatus.never_verified,
+        ):
+            setattr(evaluated_resource.capabilities, field, None)
+    return evaluated_resource

@@ -62,7 +62,7 @@ export default function ClarifyPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/" className="btn-primary">Create New Case</Link>
-            <Link href="/incident/demo-001/clarify" className="btn-secondary">Try Demo Scenario</Link>
+            <Link href="/incident/demo-001/review" className="btn-secondary">Try Demo Scenario</Link>
           </div>
         </div>
       </div>

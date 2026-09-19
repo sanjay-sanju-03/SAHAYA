@@ -51,6 +51,8 @@ class AgeGroup(str, Enum):
 class IncidentStatus(str, Enum):
     received = "received"
     analyzing = "analyzing"
+    review_required = "review_required"
+    ready_for_evaluation = "ready_for_evaluation"
     needs_clarification = "needs_clarification"
     evaluated = "evaluated"
     confirmed = "confirmed"
@@ -140,6 +142,14 @@ class Incident(BaseModel):
 
     # The structured person profile
     person: PersonProfile = Field(default_factory=PersonProfile)
+    # Immutable AI proposal; `person` becomes the coordinator-reviewed profile.
+    ai_person: PersonProfile = Field(default_factory=PersonProfile)
+    requirements_review_started: bool = False
+    requirements_reviewed: bool = False
+    requirement_version: int = 0
+    requirements_reviewed_at: Optional[datetime] = None
+    requirements_reviewed_by: Optional[str] = None
+    reviewed_requirement_fields: list[str] = Field(default_factory=list)
 
     # Raw extracted constraints list (supplementary to person profile)
     constraints: list[Constraint] = Field(default_factory=list)
@@ -162,6 +172,26 @@ class Incident(BaseModel):
     manual_override_by: Optional[str] = None
     manual_override_at: Optional[datetime] = None
     manual_override_reason: Optional[str] = None
+
+
+class CasePerson(BaseModel):
+    """A separately reviewed person within a multi-person incident."""
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    incident_id: str
+    display_name: str
+    original_text: Optional[str] = None
+    ai_person: PersonProfile = Field(default_factory=PersonProfile)
+    person: PersonProfile = Field(default_factory=PersonProfile)
+    requirement_version: int = 0
+    requirements_reviewed: bool = False
+    reviewed_requirement_fields: list[str] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class CreatePersonRequest(BaseModel):
+    display_name: str = Field(..., min_length=1, max_length=100)
+    text: str = Field(..., min_length=1, max_length=5000)
 
 
 # ---------------------------------------------------------------------------
@@ -196,6 +226,16 @@ class AuthorizeManualOverrideRequest(BaseModel):
     reason: str = Field(..., min_length=1, max_length=2000)
 
 
+class RequirementUpdateRequest(BaseModel):
+    """Tri-state coordinator decision for a reviewable requirement."""
+    value: str = Field(..., pattern="^(required|not_required|unknown)$")
+    coordinator_id: str = Field(..., min_length=1)
+
+
+class ConfirmRequirementsRequest(BaseModel):
+    coordinator_id: str = Field(..., min_length=1)
+
+
 class IncidentSummaryResponse(BaseModel):
     id: str
     status: IncidentStatus
@@ -203,6 +243,9 @@ class IncidentSummaryResponse(BaseModel):
     urgency: Optional[Urgency]
     location_text: Optional[str]
     person: PersonProfile
+    ai_person: PersonProfile
+    requirements_reviewed: bool
+    requirement_version: int
     extraction_confidence: Optional[float]
     needs_manual_review: bool
     confirmed_resource_id: Optional[str]

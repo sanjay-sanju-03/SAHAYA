@@ -19,7 +19,13 @@ Emergency report
       ↓
 AI extraction + clarification
       ↓
-Active case requirements
+Human requirement review
+      ↓
+Versioned final case requirements
+      ↓
+Resource verification + per-capability freshness
+      ↓
+Person-specific review + group capacity check
       ↓
 Resource-type applicability
       ↓
@@ -36,13 +42,22 @@ Audit timeline
 
 - Written incident intake in Malayalam or English, plus Malayalam voice transcription.
 - OpenAI-backed structured extraction with a safety fallback to manual review.
+- Requirement Review/Edit gate: preserves the AI proposal, records coordinator edits separately, and versions the final requirement set used by the engine.
 - One-at-a-time clarification for missing MVP-critical information.
 - Explicit accessibility requirements for wheelchair access, step-free access, accessible transport, caregiver support, hearing support, and visual communication.
 - Deterministic resource evaluation with evidence for every applicable requirement.
+- A reusable WHY panel that shows the reviewed person requirement, exact resource capability, provenance, freshness, versions, and deterministic result for every check.
+- Evidence-based comparison of two to four resources. SAHAYA compares evidence; it never ranks or selects a “best” resource.
+- Multi-person case support: each person has an independently reviewed requirement version; group decisions aggregate person × resource evidence with a separate deterministic capacity check.
 - Resource-type applicability: shelters are evaluated for shelter capabilities; vehicles are evaluated only when accessible transport is required.
+- Resource verification workspace with YES / NO / UNKNOWN evidence, source, coordinator, timestamp, notes, freshness state, and a versioned resource record.
+- Resource images use a vision model for observation-only evidence (for example, visible stairs or ramp). A coordinator must apply or edit every proposal before it changes a capability or evaluation.
+- Conservative freshness rule: stale or never-verified positive capabilities are treated as **UNKNOWN** during evaluation; known negative capabilities remain evidence of a conflict.
 - Human confirmation for SAFE resources only.
 - Manual override for BLOCKED resources, requiring an acknowledgement and documented reason. The original rule decision remains **BLOCKED**.
 - An audit timeline recording analysis, clarification, evaluations, confirmations, and override events.
+
+Any requirement or resource-verification change after evaluation invalidates previous reports. In multi-person cases, a change to any person or group membership invalidates the group report. Re-evaluation records every current person requirement version and resource version before a coordinator can confirm an assignment.
 
 ## Decision states
 
@@ -71,21 +86,22 @@ SAHAYA/
 │   ├── requirements.txt
 │   ├── app/
 │   │   ├── main.py                    # FastAPI startup, CORS, health endpoint
-│   │   ├── seed_data.py               # demo-001 and five seeded resources
+│   │   ├── seed_data.py               # single-person and multi-person seeded demos
 │   │   ├── ai/
 │   │   │   ├── extractor.py           # OpenAI → IncidentExtraction → PersonProfile
 │   │   │   ├── clarifier.py           # missing-information questions and answers
 │   │   │   └── whisper.py             # audio transcription
 │   │   ├── api/
-│   │   │   ├── incidents.py           # intake, evaluation, confirmation, override, audit
-│   │   │   ├── resources.py           # resource endpoints
+│   │   │   ├── incidents.py           # single-person intake, evaluation, confirmation, audit
+│   │   │   ├── people.py              # people, per-person review, group evaluation, capacity
+│   │   │   ├── resources.py           # capability verification, provenance, freshness endpoints
 │   │   │   ├── evaluations.py         # evaluation lookup endpoints
 │   │   │   └── audio.py               # transcription endpoint
 │   │   ├── engine/
 │   │   │   └── constraint_engine.py   # SAFE / UNKNOWN / BLOCKED / NOT APPLICABLE rules
 │   │   ├── models/
 │   │   │   ├── incident.py            # incident, person, request schemas
-│   │   │   ├── resource.py            # resource capability schemas
+│   │   │   ├── resource.py            # capabilities, verification provenance, freshness, versions
 │   │   │   ├── evaluation.py          # reports and verdict schemas
 │   │   │   └── audit.py               # auditable event schemas
 │   │   └── store/
@@ -99,7 +115,8 @@ SAHAYA/
     │   ├── app/
     │   │   ├── page.tsx                # intake and guided demo entry
     │   │   ├── processing/page.tsx     # extraction progress
-    │   │   └── incident/[id]/          # summary, clarification, resources, confirmation, audit
+    │   │   ├── incident/[id]/          # summary, review, people, group evidence, resources, audit
+    │   │   └── resource/[id]/verify/   # coordinator capability verification workspace
     │   ├── components/sahaya/          # evidence, cards, dialogs, timeline, status UI
     │   └── lib/api.ts                  # typed FastAPI client
     └── public/                         # static assets
@@ -178,7 +195,7 @@ Use **Try Guided Demo** on the landing page to load `demo-001`. It bypasses live
 
 ```text
 Clarification
-→ active requirements
+→ requirement review and confirmation
 → resource evaluation
 → evidence
 → human confirmation or manual override
@@ -186,6 +203,8 @@ Clarification
 ```
 
 The seeded resources deliberately show contrasting outcomes, including SAFE, UNKNOWN, BLOCKED, and—for cases without a transport requirement—NOT APPLICABLE vehicles.
+
+`demo-group-001` is the multi-person scenario. It contains a wheelchair user who cannot use stairs and requires hearing support, a person requiring caregiver support, and a person without active accessibility requirements. Group evaluation aggregates all person-resource decisions and checks capacity separately.
 
 ## MVP limitation
 
