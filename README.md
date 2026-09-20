@@ -1,44 +1,107 @@
 # SAHAYA
 
-**Inclusive Emergency Decision Engine**
+## Overview
 
-> *Before we send help, let's make sure it can actually help.*
+**SAHAYA — Inclusive Emergency Decision Engine** is a decision-support system for emergency coordinators. It turns a Malayalam or English emergency report into reviewed accessibility requirements, verifies whether a shelter or vehicle can actually meet them, and preserves the evidence behind every decision.
 
-SAHAYA is decision support for emergency coordinators. It turns a report into structured accessibility needs, checks a proposed resource against deterministic rules, presents evidence, and records the human decision. It does not autonomously dispatch help.
+SAHAYA does **not** autonomously dispatch people. It makes compatibility decisions explainable, identifies uncertainty, and records a coordinator's final confirmation or authorized override.
 
-**AI understands → Rules verify → Humans decide.**
+**Live demo:** [sahaya-sigma.vercel.app](https://sahaya-sigma.vercel.app/)
 
-## Why SAHAYA
+**Live API:** [sahaya-api.onrender.com/health](https://sahaya-api.onrender.com/health)
 
-Traditional matching asks: **“Is this resource available?”**
+## Problem Statement
 
-SAHAYA asks: **“Is this resource compatible with this person?”**
+In an emergency, “a resource is available” does not mean “the resource is usable.” A shelter with stairs may be unusable for a wheelchair user; a vehicle may have seats but lack accessible transport; a route may be hazardous even when the destination is compatible.
 
-```text
+Many workflows hide these mismatches, treat missing data as if it were safe, or provide no evidence for why a decision was made. This can exclude people with mobility, communication, hearing, visual, and caregiver-support needs.
+
+## Solution
+
+SAHAYA combines AI interpretation with deterministic rules and human accountability:
+
+~~~text
 Emergency report
       ↓
 AI extraction + clarification
       ↓
 Human requirement review
       ↓
-Versioned final case requirements
+Versioned requirements and verified resource evidence
       ↓
-Resource verification + per-capability freshness
-      ↓
-Person-specific review + group capacity check
-      ↓
-Resource-type applicability
-      ↓
-Deterministic evidence-based evaluation
+Deterministic compatibility checks
       ↓
 SAFE / UNKNOWN / BLOCKED / NOT APPLICABLE
       ↓
 Human confirmation or documented manual override
       ↓
 Audit timeline
-```
+~~~
 
-## Product capabilities
+> Traditional matching asks: **“Is this resource available?”**
+
+> SAHAYA asks: **“Is this resource compatible with this person?”**
+
+## Features
+
+- Malayalam and English incident intake, with AI-assisted structured extraction and a conservative manual-review fallback.
+- Human requirement review/edit, ensuring that a coordinator confirms the authoritative accessibility profile.
+- Deterministic evaluation of wheelchair access, step-free access, accessible transport, caregiver support, hearing support, and visual communication.
+- Evidence-first SAFE, UNKNOWN, and BLOCKED outcomes with requirement, capability, provenance, freshness, and rule-result details.
+- Accessibility-aware capacity checks: accessible and caregiver spaces never get substituted with general capacity.
+- QR Resource Passports for field verification, resource freshness, versioning, and live capability/capacity updates.
+- Operations map plus route/hazard evidence, kept separate from resource compatibility.
+- Human confirmation for SAFE resources and documented manual override for BLOCKED resources, without changing the original rule verdict.
+- Audit timeline and a read-only SAHAYA Assistant that explains evidence and changes without altering records.
+
+## Tech Stack
+
+- **Frontend:** Next.js 16, React 19, TypeScript, Tailwind CSS, Lucide Icons, MapLibre.
+- **Backend:** FastAPI, Python 3.12, Pydantic, deterministic constraint engine.
+- **Database:** Supabase/PostgreSQL with versioned JSONB persistence.
+- **APIs / Services:** OpenAI gpt-4o for structured extraction, image observations, and grounded assistant wording; OpenAI transcription for Malayalam/English voice intake.
+- **Hosting / Deployment:** Vercel frontend, Render backend, Supabase database.
+- **Other Tools:** GitHub, QR Resource Passport workflow, OpenStreetMap map tiles.
+
+## Codex / OpenAI Usage
+
+Codex and OpenAI were used as development collaborators during the hackathon:
+
+- Planned the safety architecture around AI interpretation, deterministic verification, and human authority.
+- Generated and refined FastAPI, Next.js, Pydantic, Supabase, testing, and deployment code.
+- Diagnosed extraction fallback, CORS, deployment, dependency, and stale-evaluation issues.
+- Improved UI/UX copy, evidence presentation, testing, documentation, and the guided demo flow.
+- Integrated OpenAI APIs for structured incident extraction, accessibility-image observations, transcription, and the read-only evidence assistant.
+
+AI never becomes the final dispatcher in SAHAYA. Deterministic rules validate compatibility, and a human coordinator remains responsible for confirmation or explicit override.
+
+## Demo
+
+### Live Demo
+
+[Open SAHAYA](https://sahaya-sigma.vercel.app/)
+
+Recommended judge flow:
+
+1. Select **Try Guided Demo**.
+2. Review and confirm the requirements.
+3. Evaluate resources and compare SAFE, UNKNOWN, and BLOCKED evidence.
+4. Open a SAFE resource, inspect WHY evidence, and record a human confirmation.
+5. Open the audit timeline to see the accountable decision trail.
+
+### Demo / Pitch Video
+
+**Add the public pitch-video link here before submitting the Google Form.** A focused 2–3 minute video should demonstrate the guided-demo flow and the distinction between AI interpretation, deterministic rules, and human confirmation.
+
+## Screenshots
+
+Before final submission, add three screenshots here:
+
+1. **Emergency intake / guided demo** — Malayalam or English accessibility capture.
+2. **Resource evaluation** — SAFE, UNKNOWN, and BLOCKED cards with evidence.
+3. **WHY evidence or audit timeline** — provenance plus a human confirmation or manual override.
+
+## Architecture and Safety Details
 
 - Written incident intake in Malayalam or English, plus Malayalam voice transcription.
 - OpenAI-backed structured extraction with a safety fallback to manual review.
@@ -136,7 +199,14 @@ SAHAYA/
     └── public/                         # static assets
 ```
 
-## Run locally
+## How to Run Locally
+
+Clone the repository:
+
+~~~bash
+git clone https://github.com/sanjay-sanju-03/SAHAYA.git
+cd SAHAYA
+~~~
 
 ### Backend
 
@@ -272,3 +342,10 @@ The seeded resources deliberately show contrasting outcomes, including SAFE, UNK
 Local development defaults to `STORE_BACKEND=memory`, so restarting a local API resets non-seeded cases. Render uses `STORE_BACKEND=supabase`; after the migration and Render secrets are configured, incidents, reviewed requirements, resource verification, evaluations, route evidence, and audit records survive restarts.
 
 The browser never connects to Supabase directly. Keep `SUPABASE_SECRET_KEY` only in Render, never in Vercel or a client-side `NEXT_PUBLIC_*` variable.
+
+## Additional Notes
+
+- SAHAYA is a decision-support prototype, not an autonomous emergency-dispatch system.
+- The guided demo uses synthetic records; no real emergency dispatch is initiated.
+- AI outputs are proposals for review. A coordinator confirms requirements, verifies resources, and makes the final operational decision.
+- If evidence is missing, stale, or contradictory, SAHAYA prefers **UNKNOWN** over an unsupported safety claim.
