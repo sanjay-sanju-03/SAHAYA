@@ -97,11 +97,29 @@ The video demonstrates the guided-demo flow and the distinction between AI inter
 
 ## Screenshots
 
-Before final submission, add three screenshots here:
+### 1. Inclusive incident intake
 
-1. **Emergency intake / guided demo** — Malayalam or English accessibility capture.
-2. **Resource evaluation** — SAFE, UNKNOWN, and BLOCKED cards with evidence.
-3. **WHY evidence or audit timeline** — provenance plus a human confirmation or manual override.
+<img src="docs/screenshots/01-landing.png" alt="SAHAYA landing page with Malayalam and English emergency intake" width="900" />
+
+### 2. Human requirement review
+
+<img src="docs/screenshots/02-requirement-review.png" alt="Reviewed emergency accessibility requirements" width="900" />
+
+### 3. Deterministic resource evaluation
+
+<img src="docs/screenshots/03-resource-evaluation.png" alt="Resource evaluation showing SAFE, UNKNOWN, BLOCKED, and NOT APPLICABLE states" width="900" />
+
+### 4. WHY evidence panel
+
+<img src="docs/screenshots/04-evidence.png" alt="Evidence table comparing person requirements to resource capabilities" width="900" />
+
+### 5. Human confirmation gate
+
+<img src="docs/screenshots/05-human-confirmation.png" alt="Coordinator confirmation dialog for a SAFE assignment" width="700" />
+
+### 6. Accountable audit trail
+
+<img src="docs/screenshots/06-audit-trail.png" alt="Case audit trail with extraction, review, evaluation, and confirmation events" width="900" />
 
 ## Architecture and Safety Details
 
