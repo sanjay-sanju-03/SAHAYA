@@ -30,9 +30,17 @@ class SupabaseStateStore:
 
     def __init__(self) -> None:
         url = os.getenv("SUPABASE_URL", "").strip()
-        key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+        # Supabase now issues server-only keys as sb_secret_... values. Keep
+        # the legacy variable as a fallback for existing deployments.
+        key = (
+            os.getenv("SUPABASE_SECRET_KEY", "").strip()
+            or os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+        )
         if not url or not key or "your_" in url or "your_" in key:
-            raise RuntimeError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required for STORE_BACKEND=supabase.")
+            raise RuntimeError(
+                "SUPABASE_URL and SUPABASE_SECRET_KEY are required for "
+                "STORE_BACKEND=supabase."
+            )
         self.client: Client = create_client(url, key)
 
     def load_all(self, table: str) -> dict[str, dict[str, Any]]:

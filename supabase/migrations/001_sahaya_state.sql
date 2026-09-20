@@ -1,6 +1,6 @@
 -- SAHAYA persistent state schema.
 -- Run this in Supabase SQL Editor before setting STORE_BACKEND=supabase.
--- The Render service role bypasses RLS; do not expose it in the frontend.
+-- The Render server secret key bypasses RLS; do not expose it in the frontend.
 
 create table if not exists incidents (
   id text primary key,

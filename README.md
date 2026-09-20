@@ -207,7 +207,7 @@ SAHAYA is configured for a Render FastAPI backend and a Vercel Next.js frontend.
 
 1. Create a Supabase project.
 2. Open its SQL Editor and run the migration file at supabase/migrations/001_sahaya_state.sql.
-3. Copy the project URL and **service_role** key. Keep the service-role key private; it belongs only in Render.
+3. Copy the project URL and its server-only **secret** key (starts with `sb_secret_`). Keep that key private; it belongs only in Render.
 
 ### Render backend
 
@@ -215,7 +215,7 @@ SAHAYA is configured for a Render FastAPI backend and a Vercel Next.js frontend.
 2. Add these secret environment variables:
    - `OPENAI_API_KEY`: your OpenAI key.
    - `CORS_ORIGINS`: the final Vercel origin, for example `https://your-app.vercel.app`.
-   - `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`: required for persistence. Keep the service-role key on Render only.
+   - `SUPABASE_URL` and `SUPABASE_SECRET_KEY`: required for persistence. Keep the secret key on Render only.
 3. Deploy and verify `https://<your-render-service>.onrender.com/health` returns `status: ok`.
 
 ### Vercel frontend
@@ -271,4 +271,4 @@ The seeded resources deliberately show contrasting outcomes, including SAFE, UNK
 
 Local development defaults to `STORE_BACKEND=memory`, so restarting a local API resets non-seeded cases. Render uses `STORE_BACKEND=supabase`; after the migration and Render secrets are configured, incidents, reviewed requirements, resource verification, evaluations, route evidence, and audit records survive restarts.
 
-The browser never connects to Supabase directly. Keep `SUPABASE_SERVICE_ROLE_KEY` only in Render, never in Vercel or a client-side `NEXT_PUBLIC_*` variable.
+The browser never connects to Supabase directly. Keep `SUPABASE_SECRET_KEY` only in Render, never in Vercel or a client-side `NEXT_PUBLIC_*` variable.
