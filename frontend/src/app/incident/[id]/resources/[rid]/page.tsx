@@ -77,6 +77,7 @@ export default function ResourceDetailPage() {
                 <p className="text-sm text-gray-500 mt-1">Verify the resource record or resolve missing case information before assigning it.</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <Link href={`/resource/${rid}`} className="btn-secondary w-full sm:w-auto">RESOURCE PASSPORT</Link>
                 <Link href={`/resource/${rid}/verify`} className="btn-primary w-full sm:w-auto">VERIFY RESOURCE</Link>
                 <Link href={`/incident/${id}/clarify`} className="btn-secondary w-full sm:w-auto">RESOLVE CASE INFO</Link>
               </div>

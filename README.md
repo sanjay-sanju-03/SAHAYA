@@ -49,6 +49,7 @@ Audit timeline
 - A reusable WHY panel that shows the reviewed person requirement, exact resource capability, provenance, freshness, versions, and deterministic result for every check.
 - Evidence-based comparison of two to four resources. SAHAYA compares evidence; it never ranks or selects a “best” resource.
 - Accessibility capacity: total places, accessible places, and caregiver places are independently recorded. General availability never substitutes for a required accessible or caregiver space.
+- QR Resource Passport: a QR code identifies a resource and opens its live passport with current capacity, capability evidence, freshness, provenance, version, and the existing coordinator verification flow. The QR contains no duplicate capability data.
 - Multi-person case support: each person has an independently reviewed requirement version; group decisions aggregate person × resource evidence with deterministic total, accessible, and caregiver capacity checks.
 - Resource-type applicability: shelters are evaluated for shelter capabilities; vehicles are evaluated only when accessible transport is required.
 - Resource verification workspace with YES / NO / UNKNOWN evidence, source, coordinator, timestamp, notes, freshness state, and a versioned resource record.
@@ -117,7 +118,8 @@ SAHAYA/
     │   │   ├── page.tsx                # intake and guided demo entry
     │   │   ├── processing/page.tsx     # extraction progress
     │   │   ├── incident/[id]/          # summary, review, people, group evidence, resources, audit
-    │   │   └── resource/[id]/verify/   # coordinator capability verification workspace
+    │   │   ├── resource/[id]/           # live QR Resource Passport
+    │   │   └── resource/[id]/verify/   # coordinator capability/capacity verification workspace
     │   ├── components/sahaya/          # evidence, cards, dialogs, timeline, status UI
     │   └── lib/api.ts                  # typed FastAPI client
     └── public/                         # static assets
@@ -167,6 +169,8 @@ npm run dev
 ```
 
 The application runs at `http://localhost:3000`.
+
+For a QR code scanned from another device, set `NEXT_PUBLIC_APP_URL` in `frontend/.env.local` to the LAN-reachable address of the frontend, for example `http://192.168.1.10:3000`.
 
 ## Environment configuration
 

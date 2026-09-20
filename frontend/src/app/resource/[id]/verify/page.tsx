@@ -155,7 +155,7 @@ export default function ResourceVerificationPage() {
 
   return (
     <div className="page-container max-w-3xl">
-      <Link href="/" className="text-sm font-medium text-gray-500 hover:text-navy-600">← Back to SAHAYA</Link>
+      <Link href={`/resource/${id}`} className="text-sm font-medium text-gray-500 hover:text-navy-600">← Back to Resource Passport</Link>
       <div className="mt-5 mb-8">
         <p className="metric-label mb-2">RESOURCE VERIFICATION</p>
         <h1 className="text-display mb-2">{data.resource.name}</h1>
