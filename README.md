@@ -48,7 +48,8 @@ Audit timeline
 - Deterministic resource evaluation with evidence for every applicable requirement.
 - A reusable WHY panel that shows the reviewed person requirement, exact resource capability, provenance, freshness, versions, and deterministic result for every check.
 - Evidence-based comparison of two to four resources. SAHAYA compares evidence; it never ranks or selects a “best” resource.
-- Multi-person case support: each person has an independently reviewed requirement version; group decisions aggregate person × resource evidence with a separate deterministic capacity check.
+- Accessibility capacity: total places, accessible places, and caregiver places are independently recorded. General availability never substitutes for a required accessible or caregiver space.
+- Multi-person case support: each person has an independently reviewed requirement version; group decisions aggregate person × resource evidence with deterministic total, accessible, and caregiver capacity checks.
 - Resource-type applicability: shelters are evaluated for shelter capabilities; vehicles are evaluated only when accessible transport is required.
 - Resource verification workspace with YES / NO / UNKNOWN evidence, source, coordinator, timestamp, notes, freshness state, and a versioned resource record.
 - Resource images use a vision model for observation-only evidence (for example, visible stairs or ramp). A coordinator must apply or edit every proposal before it changes a capability or evaluation.
@@ -94,14 +95,14 @@ SAHAYA/
 │   │   ├── api/
 │   │   │   ├── incidents.py           # single-person intake, evaluation, confirmation, audit
 │   │   │   ├── people.py              # people, per-person review, group evaluation, capacity
-│   │   │   ├── resources.py           # capability verification, provenance, freshness endpoints
+│   │   │   ├── resources.py           # capability/capacity verification, provenance, freshness endpoints
 │   │   │   ├── evaluations.py         # evaluation lookup endpoints
 │   │   │   └── audio.py               # transcription endpoint
 │   │   ├── engine/
 │   │   │   └── constraint_engine.py   # SAFE / UNKNOWN / BLOCKED / NOT APPLICABLE rules
 │   │   ├── models/
 │   │   │   ├── incident.py            # incident, person, request schemas
-│   │   │   ├── resource.py            # capabilities, verification provenance, freshness, versions
+│   │   │   ├── resource.py            # capabilities, accessibility capacity, provenance, freshness
 │   │   │   ├── evaluation.py          # reports and verdict schemas
 │   │   │   └── audit.py               # auditable event schemas
 │   │   └── store/
@@ -204,7 +205,7 @@ Clarification
 
 The seeded resources deliberately show contrasting outcomes, including SAFE, UNKNOWN, BLOCKED, and—for cases without a transport requirement—NOT APPLICABLE vehicles.
 
-`demo-group-001` is the multi-person scenario. It contains a wheelchair user who cannot use stairs and requires hearing support, a person requiring caregiver support, and a person without active accessibility requirements. Group evaluation aggregates all person-resource decisions and checks capacity separately.
+`demo-group-001` is the multi-person scenario. It contains a wheelchair user who cannot use stairs and requires hearing support, a person requiring caregiver support, and a person without active accessibility requirements. Group evaluation aggregates all person-resource decisions and checks total, accessible, and caregiver capacity separately.
 
 ## MVP limitation
 

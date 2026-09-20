@@ -338,6 +338,63 @@ def evaluate(person: PersonProfile, resource: Resource, incident_id: str = "") -
             reason="Available capacity for this resource is unknown.",
         ))
 
+    # Accessibility capacity is independent from total capacity. A free
+    # general space must never be treated as proof that an accessible or
+    # caregiver space is available.
+    if resource.type.value == "shelter" and person.wheelchair_required is True:
+        accessible_remaining = resource.accessible_spaces_remaining()
+        if accessible_remaining is None:
+            checks.append(_unknown(
+                constraint="accessible_capacity",
+                requirement="Accessible space required",
+                resource_val="Accessible spaces: Not on record",
+                evidence="Accessible capacity not reported",
+                reason="Accessible capacity is not verified for this resource.",
+            ))
+        elif accessible_remaining < 1:
+            checks.append(_blocked(
+                constraint="accessible_capacity",
+                requirement="Accessible space required",
+                resource_val=f"Accessible spaces remaining: {accessible_remaining}",
+                evidence="Accessible capacity record",
+                reason="No accessible space is currently available for this person.",
+            ))
+        else:
+            checks.append(_safe(
+                constraint="accessible_capacity",
+                requirement="Accessible space required",
+                resource_val=f"Accessible spaces remaining: {accessible_remaining}",
+                evidence="Accessible capacity record",
+                reason="An accessible space is currently available for this person.",
+            ))
+
+    if resource.type.value == "shelter" and person.caregiver_required is True:
+        caregiver_remaining = resource.caregiver_spaces_remaining()
+        if caregiver_remaining is None:
+            checks.append(_unknown(
+                constraint="caregiver_capacity",
+                requirement="Caregiver space required",
+                resource_val="Caregiver spaces: Not on record",
+                evidence="Caregiver capacity not reported",
+                reason="Caregiver capacity is not verified for this resource.",
+            ))
+        elif caregiver_remaining < 1:
+            checks.append(_blocked(
+                constraint="caregiver_capacity",
+                requirement="Caregiver space required",
+                resource_val=f"Caregiver spaces remaining: {caregiver_remaining}",
+                evidence="Caregiver capacity record",
+                reason="No caregiver space is currently available for this person.",
+            ))
+        else:
+            checks.append(_safe(
+                constraint="caregiver_capacity",
+                requirement="Caregiver space required",
+                resource_val=f"Caregiver spaces remaining: {caregiver_remaining}",
+                evidence="Caregiver capacity record",
+                reason="A caregiver space is currently available for this person.",
+            ))
+
     # ------------------------------------------------------------------
     # If no checks were produced (person has no known constraints), return SAFE
     # but note that it's because no critical constraints were identified.

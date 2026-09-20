@@ -9,6 +9,7 @@ import {
   getResourceVerification,
   observeResourceImage,
   ResourceImageObservations,
+  ResourceCapacityUpdate,
   ResourceVerificationResponse,
   verifyResource,
 } from "@/lib/api";
@@ -30,6 +31,15 @@ const freshnessClass: Record<string, string> = {
   NEVER_VERIFIED: "badge-not-applicable",
 };
 
+const CAPACITY_FIELDS: { field: keyof ResourceCapacityUpdate; label: string }[] = [
+  { field: "total_capacity", label: "Total capacity" },
+  { field: "current_occupancy", label: "Current occupancy" },
+  { field: "accessible_capacity", label: "Accessible spaces" },
+  { field: "accessible_occupied", label: "Accessible spaces occupied" },
+  { field: "caregiver_capacity", label: "Caregiver spaces" },
+  { field: "caregiver_occupied", label: "Caregiver spaces occupied" },
+];
+
 function toValue(value: boolean | null | undefined, inverse = false): CapabilityValue {
   if (value === null || value === undefined) return "unknown";
   const normalized = inverse ? !value : value;
@@ -45,6 +55,7 @@ export default function ResourceVerificationPage() {
   const { id } = useParams() as { id: string };
   const [data, setData] = useState<ResourceVerificationResponse | null>(null);
   const [draft, setDraft] = useState<Record<string, CapabilityValue>>({});
+  const [capacityDraft, setCapacityDraft] = useState<Record<string, string>>({});
   const [source, setSource] = useState("Coordinator inspection");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -63,6 +74,14 @@ export default function ResourceVerificationPage() {
           capability.field,
           toValue(response.resource.capabilities[capability.field as keyof typeof response.resource.capabilities] as boolean | null, capability.inverse),
         ])));
+        setCapacityDraft({
+          total_capacity: response.resource.capacity?.toString() ?? "",
+          current_occupancy: response.resource.current_occupancy?.toString() ?? "",
+          accessible_capacity: response.resource.accessible_capacity?.toString() ?? "",
+          accessible_occupied: response.resource.accessible_occupied?.toString() ?? "",
+          caregiver_capacity: response.resource.caregiver_capacity?.toString() ?? "",
+          caregiver_occupied: response.resource.caregiver_occupied?.toString() ?? "",
+        });
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Unable to load the resource."));
   }, [id]);
@@ -80,7 +99,10 @@ export default function ResourceVerificationPage() {
         capability.field,
         toStoredValue(draft[capability.field], capability.inverse),
       ]));
-      const resource = await verifyResource(id, updates, source, notes);
+      const capacity: ResourceCapacityUpdate | undefined = data.resource.type === "shelter" ? Object.fromEntries(
+        CAPACITY_FIELDS.map(({ field }) => [field, capacityDraft[field] === "" ? null : Number(capacityDraft[field])]),
+      ) : undefined;
+      const resource = await verifyResource(id, updates, source, notes, capacity);
       const refreshed = await getResourceVerification(id);
       setData(refreshed);
       setSaved(true);
@@ -88,6 +110,14 @@ export default function ResourceVerificationPage() {
         capability.field,
         toValue(resource.capabilities[capability.field as keyof typeof resource.capabilities] as boolean | null, capability.inverse),
       ])));
+      setCapacityDraft({
+        total_capacity: resource.capacity?.toString() ?? "",
+        current_occupancy: resource.current_occupancy?.toString() ?? "",
+        accessible_capacity: resource.accessible_capacity?.toString() ?? "",
+        accessible_occupied: resource.accessible_occupied?.toString() ?? "",
+        caregiver_capacity: resource.caregiver_capacity?.toString() ?? "",
+        caregiver_occupied: resource.caregiver_occupied?.toString() ?? "",
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save verification.");
     } finally {
@@ -159,6 +189,17 @@ export default function ResourceVerificationPage() {
           );
         })}
       </div>
+
+      {data.resource.type === "shelter" && <section className="card p-5 mt-6">
+        <p className="metric-label mb-1">ACCESSIBILITY CAPACITY</p>
+        <h2 className="font-bold">Capacity by support need</h2>
+        <p className="text-sm text-gray-600 mt-1">General capacity never substitutes for an accessible or caregiver space.</p>
+        <div className="grid sm:grid-cols-2 gap-4 mt-5">
+          {CAPACITY_FIELDS.map(({ field, label }) => <label key={field} className="text-sm font-semibold text-gray-700">{label}
+            <input min="0" type="number" value={capacityDraft[field] ?? ""} onChange={(event) => { setCapacityDraft((current) => ({ ...current, [field]: event.target.value })); setSaved(false); }} placeholder="Unknown" className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white p-3 text-sm font-normal" />
+          </label>)}
+        </div>
+      </section>}
 
       <section className="card p-5 mt-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

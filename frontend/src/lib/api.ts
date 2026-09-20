@@ -71,6 +71,11 @@ export interface Resource {
   status: string;
   capacity: number | null;
   available_capacity: number | null;
+  current_occupancy: number | null;
+  accessible_capacity: number | null;
+  accessible_occupied: number | null;
+  caregiver_capacity: number | null;
+  caregiver_occupied: number | null;
   capabilities: {
     ground_floor: boolean | null;
     stairs_required: boolean | null;
@@ -163,6 +168,15 @@ export interface AuditLog {
 
 export type CapabilityValue = "yes" | "no" | "unknown";
 
+export interface ResourceCapacityUpdate {
+  total_capacity?: number | null;
+  current_occupancy?: number | null;
+  accessible_capacity?: number | null;
+  accessible_occupied?: number | null;
+  caregiver_capacity?: number | null;
+  caregiver_occupied?: number | null;
+}
+
 export interface ResourceVerificationResponse {
   resource: Resource;
   resource_version: number;
@@ -200,6 +214,10 @@ export interface GroupEvaluation {
   capacity_status: "SAFE" | "UNKNOWN" | "BLOCKED";
   capacity_required: number;
   capacity_available: number | null;
+  accessible_spaces_required: number;
+  accessible_spaces_available: number | null;
+  caregiver_spaces_required: number;
+  caregiver_spaces_available: number | null;
   is_current: boolean;
   outdated_reason: string | null;
   people: { person_id: string; display_name: string; requirement_version: number; result: EvaluationReport }[];
@@ -396,12 +414,14 @@ export async function verifyResource(
   capabilities: Record<string, CapabilityValue>,
   source: string,
   notes: string,
+  capacity?: ResourceCapacityUpdate,
   coordinatorId = "coord-demo-001",
 ): Promise<Resource> {
   return api<Resource>(`/api/resources/${id}/verify`, {
     method: "POST",
     body: JSON.stringify({
       capabilities,
+      capacity,
       coordinator_id: coordinatorId,
       source,
       notes: notes || null,

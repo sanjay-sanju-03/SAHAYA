@@ -89,8 +89,11 @@ async def verify_resource(resource_id: str, body: ResourceVerificationRequest):
     resource = get_resource(resource_id)
     if not resource:
         raise HTTPException(status_code=404, detail=f"Resource {resource_id!r} not found.")
-    if not body.capabilities:
-        raise HTTPException(status_code=422, detail="Submit at least one capability verification.")
+    if not body.capabilities and body.capacity is None:
+        raise HTTPException(status_code=422, detail="Submit a capability or capacity verification.")
+    # Validate and prepare a copy first: an invalid submission must never
+    # partially mutate the in-memory resource record.
+    resource = resource.model_copy(deep=True)
 
     changed: list[dict] = []
     verified_at = datetime.utcnow()
@@ -109,6 +112,23 @@ async def verify_resource(resource_id: str, body: ResourceVerificationRequest):
             notes=body.notes,
         )
         changed.append({"field": field, "previous": previous, "value": final_value})
+
+    if body.capacity is not None:
+        capacity_updates = body.capacity.model_dump(exclude_unset=True)
+        for field, value in capacity_updates.items():
+            resource_field = "capacity" if field == "total_capacity" else field
+            previous = getattr(resource, resource_field)
+            setattr(resource, resource_field, value)
+            changed.append({"field": field, "previous": previous, "value": value})
+
+        if resource.capacity is not None and resource.current_occupancy is not None:
+            if resource.current_occupancy > resource.capacity:
+                raise HTTPException(status_code=422, detail="Current occupancy cannot exceed total capacity.")
+            resource.available_capacity = resource.capacity - resource.current_occupancy
+        if resource.accessible_capacity is not None and resource.accessible_occupied is not None and resource.accessible_occupied > resource.accessible_capacity:
+            raise HTTPException(status_code=422, detail="Accessible occupancy cannot exceed accessible capacity.")
+        if resource.caregiver_capacity is not None and resource.caregiver_occupied is not None and resource.caregiver_occupied > resource.caregiver_capacity:
+            raise HTTPException(status_code=422, detail="Caregiver occupancy cannot exceed caregiver capacity.")
 
     resource.resource_version += 1
     resource.updated_at = verified_at

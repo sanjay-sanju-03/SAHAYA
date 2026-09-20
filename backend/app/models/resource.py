@@ -90,6 +90,21 @@ class Resource(BaseModel):
 
     capacity: Optional[int] = None
     available_capacity: Optional[int] = None
+    current_occupancy: Optional[int] = None
+    accessible_capacity: Optional[int] = None
+    accessible_occupied: Optional[int] = None
+    caregiver_capacity: Optional[int] = None
+    caregiver_occupied: Optional[int] = None
+
+    def accessible_spaces_remaining(self) -> Optional[int]:
+        if self.accessible_capacity is None or self.accessible_occupied is None:
+            return None
+        return self.accessible_capacity - self.accessible_occupied
+
+    def caregiver_spaces_remaining(self) -> Optional[int]:
+        if self.caregiver_capacity is None or self.caregiver_occupied is None:
+            return None
+        return self.caregiver_capacity - self.caregiver_occupied
 
     capabilities: ResourceCapabilities = Field(default_factory=ResourceCapabilities)
     capability_verifications: dict[str, CapabilityVerification] = Field(default_factory=dict)
@@ -102,9 +117,20 @@ class Resource(BaseModel):
     is_demo: bool = False
 
 
+class ResourceCapacityUpdate(BaseModel):
+    """Coordinator-supplied capacity figures kept separate from capabilities."""
+    total_capacity: Optional[int] = Field(default=None, ge=0)
+    current_occupancy: Optional[int] = Field(default=None, ge=0)
+    accessible_capacity: Optional[int] = Field(default=None, ge=0)
+    accessible_occupied: Optional[int] = Field(default=None, ge=0)
+    caregiver_capacity: Optional[int] = Field(default=None, ge=0)
+    caregiver_occupied: Optional[int] = Field(default=None, ge=0)
+
+
 class ResourceVerificationRequest(BaseModel):
-    """Coordinator verification submission for one or more capabilities."""
-    capabilities: dict[str, str]
+    """Coordinator verification submission for capabilities and/or capacity."""
+    capabilities: dict[str, str] = Field(default_factory=dict)
+    capacity: Optional[ResourceCapacityUpdate] = None
     coordinator_id: str = Field(..., min_length=1)
     source: str = Field(..., min_length=1, max_length=100)
     notes: Optional[str] = Field(default=None, max_length=1000)

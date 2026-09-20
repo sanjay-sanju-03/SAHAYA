@@ -115,6 +115,10 @@ class GroupEvaluation(BaseModel):
     capacity_status: CheckStatus
     capacity_required: int
     capacity_available: Optional[int] = None
+    accessible_spaces_required: int = 0
+    accessible_spaces_available: Optional[int] = None
+    caregiver_spaces_required: int = 0
+    caregiver_spaces_available: Optional[int] = None
     is_current: bool = True
     outdated_reason: Optional[str] = None
     evaluated_at: datetime = Field(default_factory=datetime.utcnow)

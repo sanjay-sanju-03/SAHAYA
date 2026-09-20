@@ -65,6 +65,10 @@ def shelter(
     ramp=None,
     caregiver_support=None,
     available_capacity=20,
+    accessible_capacity=10,
+    accessible_occupied=0,
+    caregiver_capacity=10,
+    caregiver_occupied=0,
 ) -> Resource:
     return Resource(
         id="test-shelter",
@@ -72,6 +76,10 @@ def shelter(
         name="Test Shelter",
         status=ResourceStatus.available,
         available_capacity=available_capacity,
+        accessible_capacity=accessible_capacity,
+        accessible_occupied=accessible_occupied,
+        caregiver_capacity=caregiver_capacity,
+        caregiver_occupied=caregiver_occupied,
         capabilities=ResourceCapabilities(
             wheelchair_access=wheelchair_access,
             stairs_required=stairs_required,
@@ -214,6 +222,8 @@ class TestTransport:
             name="Mixed Needs Shelter",
             status=ResourceStatus.available,
             available_capacity=20,
+            accessible_capacity=1,
+            accessible_occupied=0,
             capabilities=ResourceCapabilities(
                 wheelchair_access=True,
                 hearing_support=True,
@@ -224,7 +234,7 @@ class TestTransport:
         vehicle_report = evaluate(person, vehicle(wheelchair_transport=None), "test-incident")
 
         assert shelter_report.status == EvaluationStatus.safe
-        assert {check.constraint for check in shelter_report.checks} == {"wheelchair_access", "hearing_support"}
+        assert {check.constraint for check in shelter_report.checks} == {"wheelchair_access", "accessible_capacity", "hearing_support"}
         assert vehicle_report.status == EvaluationStatus.not_applicable
 
 
@@ -305,6 +315,43 @@ class TestCapacity:
         resource = shelter(available_capacity=10)
         report = evaluate(person, resource, "test-incident")
         assert report.status == EvaluationStatus.safe
+
+    def test_total_capacity_does_not_replace_accessible_capacity(self):
+        person = wheelchair_person(stairs_allowed=True, caregiver=False, transport=False)
+        resource = shelter(
+            wheelchair_access=True,
+            stairs_required=False,
+            available_capacity=20,
+            accessible_capacity=2,
+            accessible_occupied=2,
+        )
+        report = evaluate(person, resource, "test-incident")
+        assert report.status == EvaluationStatus.blocked
+        assert next(check for check in report.checks if check.constraint == "accessible_capacity").status == CheckStatus.blocked
+
+    def test_unknown_accessible_capacity_is_unknown_for_wheelchair_user(self):
+        person = wheelchair_person(stairs_allowed=True, caregiver=False, transport=False)
+        resource = shelter(
+            wheelchair_access=True,
+            stairs_required=False,
+            accessible_capacity=None,
+            accessible_occupied=None,
+        )
+        report = evaluate(person, resource, "test-incident")
+        assert report.status == EvaluationStatus.unknown
+
+    def test_caregiver_capacity_is_checked_separately(self):
+        person = wheelchair_person(stairs_allowed=True, caregiver=True, transport=False)
+        resource = shelter(
+            wheelchair_access=True,
+            stairs_required=False,
+            caregiver_support=True,
+            caregiver_capacity=1,
+            caregiver_occupied=1,
+        )
+        report = evaluate(person, resource, "test-incident")
+        assert report.status == EvaluationStatus.blocked
+        assert next(check for check in report.checks if check.constraint == "caregiver_capacity").status == CheckStatus.blocked
 
 
 # ---------------------------------------------------------------------------
@@ -425,7 +472,7 @@ class TestActiveConstraintEvaluation:
             "test-incident",
         )
         assert report.status == EvaluationStatus.safe
-        assert len(report.checks) == 1
+        assert {check.constraint for check in report.checks} == {"caregiver_support", "caregiver_capacity"}
         assert report.checks[0].constraint == "caregiver_support"
         assert report.checks[0].status == CheckStatus.safe
 
