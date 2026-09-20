@@ -156,7 +156,7 @@ Any requirement or resource-verification change after evaluation invalidates pre
 | **BLOCKED** | A required capability conflicts with the resource. | Assignment blocked; request manual override if authorized. |
 | **NOT APPLICABLE** | This resource type is not required for the current case. | No compatibility decision is made. |
 
-## Technology
+## Implementation Details
 
 - **Frontend:** Next.js 16, React 19, TypeScript, Tailwind CSS, Lucide icons.
 - **Backend:** FastAPI, Pydantic, Python deterministic constraint engine.
@@ -304,17 +304,17 @@ SAHAYA is configured for a Render FastAPI backend and a Vercel Next.js frontend.
 1. In Render, choose **New → Blueprint** and select this repository. It uses [`render.yaml`](render.yaml).
 2. Add these secret environment variables:
    - `OPENAI_API_KEY`: your OpenAI key.
-   - `CORS_ORIGINS`: the final Vercel origin, for example `https://your-app.vercel.app`.
+   - `CORS_ORIGINS`: `https://sahaya-sigma.vercel.app`.
    - `SUPABASE_URL` and `SUPABASE_SECRET_KEY`: required for persistence. Keep the secret key on Render only.
-3. Deploy and verify `https://<your-render-service>.onrender.com/health` returns `status: ok`.
+3. Deploy and verify [the live API health endpoint](https://sahaya-api.onrender.com/health) returns `status: ok`.
 
 ### Vercel frontend
 
 1. Import the same GitHub repository.
 2. Set **Root Directory** to `frontend`.
 3. Set these Production environment variables:
-   - `BACKEND_URL`: `https://<your-render-service>.onrender.com` (no trailing slash).
-   - `NEXT_PUBLIC_APP_URL`: the final Vercel URL; Resource Passport QR codes use it.
+   - `BACKEND_URL`: `https://sahaya-api.onrender.com` (no trailing slash).
+   - `NEXT_PUBLIC_APP_URL`: `https://sahaya-sigma.vercel.app`; Resource Passport QR codes use it.
    - Leave `NEXT_PUBLIC_API_URL` unset so the same-origin proxy is used.
 4. Deploy. If the Vercel URL differs from the value used above, update Render's `CORS_ORIGINS`.
 
