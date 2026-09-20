@@ -21,6 +21,8 @@ const markerColors: Record<EvaluationStatus, string> = {
   NOT_APPLICABLE: "#6b7280",
 };
 
+const isCoordinate = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
+
 export function OperationsMap({
   incident,
   resources,
@@ -35,9 +37,11 @@ export function OperationsMap({
 
   useEffect(() => {
     if (!container.current || map.current) return;
+    const safeIncident = incident && isCoordinate(incident.latitude) && isCoordinate(incident.longitude) ? incident : undefined;
+    const safeResources = resources.filter((resource) => isCoordinate(resource.latitude) && isCoordinate(resource.longitude));
     const points = [
-      ...(incident ? [[incident.longitude, incident.latitude] as [number, number]] : []),
-      ...resources.map((resource) => [resource.longitude, resource.latitude] as [number, number]),
+      ...(safeIncident ? [[safeIncident.longitude, safeIncident.latitude] as [number, number]] : []),
+      ...safeResources.map((resource) => [resource.longitude, resource.latitude] as [number, number]),
     ];
     const center = points[0] ?? [75.7804, 11.2588] as [number, number];
     const instance = new maplibregl.Map({
@@ -60,17 +64,17 @@ export function OperationsMap({
     map.current = instance;
     instance.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
 
-    if (incident) {
+    if (safeIncident) {
       const element = document.createElement("button");
       element.className = "operation-marker operation-marker-incident";
-      element.setAttribute("aria-label", "Incident: " + incident.label);
+      element.setAttribute("aria-label", "Incident: " + safeIncident.label);
       element.textContent = "!";
       new maplibregl.Marker({ element })
-        .setLngLat([incident.longitude, incident.latitude])
-        .setPopup(new maplibregl.Popup({ offset: 18 }).setText("INCIDENT · " + incident.label))
+        .setLngLat([safeIncident.longitude, safeIncident.latitude])
+        .setPopup(new maplibregl.Popup({ offset: 18 }).setText("INCIDENT · " + safeIncident.label))
         .addTo(instance);
     }
-    resources.forEach((resource) => {
+    safeResources.forEach((resource) => {
       const element = document.createElement("button");
       element.className = "operation-marker";
       element.style.backgroundColor = markerColors[resource.status];

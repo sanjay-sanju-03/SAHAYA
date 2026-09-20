@@ -14,6 +14,7 @@ const statusCopy: Record<EvaluationReport["status"], string> = {
   BLOCKED: "Conflict found",
   NOT_APPLICABLE: "Not required for this case",
 };
+const isCoordinate = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
 
 export default function OperationsMapPage() {
   const { id } = useParams() as { id: string };
@@ -43,7 +44,7 @@ export default function OperationsMapPage() {
   const selectResource = useCallback((resourceId: string) => setSelected(resourceId), []);
   const markers = useMemo(() => reports.flatMap((report) => {
     const resource = resources[report.resource_id];
-    return resource?.latitude !== null && resource?.longitude !== null && resource?.latitude !== undefined && resource?.longitude !== undefined
+    return isCoordinate(resource?.latitude) && isCoordinate(resource?.longitude)
       ? [{ id: resource.id, name: resource.name, latitude: resource.latitude, longitude: resource.longitude, status: report.status }]
       : [];
   }), [reports, resources]);
@@ -51,7 +52,7 @@ export default function OperationsMapPage() {
 
   if (error) return <div className="page-container py-12"><p className="text-blocked-700">{error}</p></div>;
   if (!incident) return <div className="p-10 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-navy-600" /></div>;
-  const hasIncidentPoint = incident.latitude !== null && incident.longitude !== null;
+  const hasIncidentPoint = isCoordinate(incident.latitude) && isCoordinate(incident.longitude);
 
   return <main className="page-container">
     <Link href={"/incident/" + id + "/resources"} className="text-sm font-medium text-gray-500 hover:text-navy-600">← Back to Resource Evaluation</Link>

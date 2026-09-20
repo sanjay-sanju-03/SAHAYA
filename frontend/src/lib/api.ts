@@ -3,7 +3,9 @@
  * All communication with the FastAPI backend goes through this module.
  */
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// Default to the same-origin Next.js proxy. This keeps a phone on the LAN
+// from attempting to contact its own localhost backend.
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 // ---------------------------------------------------------------------------
 // Types (mirror Pydantic models)
@@ -227,6 +229,44 @@ export interface GroupEvaluation {
   people: { person_id: string; display_name: string; requirement_version: number; result: EvaluationReport }[];
 }
 
+export interface RouteObservation {
+  id: string;
+  route_id: string;
+  incident_id: string;
+  resource_id: string;
+  route_exists: boolean | null;
+  known_hazard_on_route: boolean | null;
+  accessible_for_person: boolean | null;
+  source: string | null;
+  notes: string | null;
+  observed_by: string | null;
+  observed_at: string | null;
+  route_version: number;
+}
+
+export interface RouteEvaluation {
+  id: string;
+  incident_id: string;
+  resource_id: string;
+  resource_name: string;
+  status: EvaluationStatus;
+  checks: EvaluationCheck[];
+  requirement_version: number;
+  resource_version: number;
+  route_version: number;
+  route_freshness: "CURRENT" | "STALE" | "NEVER_OBSERVED";
+  is_current: boolean;
+  outdated_reason: string | null;
+  evaluated_at: string;
+}
+
+export interface RouteRecord {
+  incident_id: string;
+  resource_id: string;
+  observation: RouteObservation | null;
+  evaluation: RouteEvaluation | null;
+}
+
 // ---------------------------------------------------------------------------
 // Fetch helper
 // ---------------------------------------------------------------------------
@@ -444,6 +484,27 @@ export async function observeResourceImage(id: string, file: File, inspectionNot
   }
   const body = await res.json() as { observations: ResourceImageObservations };
   return body.observations;
+}
+
+export async function getRouteRecord(incidentId: string, resourceId: string): Promise<RouteRecord> {
+  return api("/api/incidents/" + incidentId + "/routes/" + resourceId);
+}
+
+export async function saveRouteObservation(
+  incidentId: string,
+  resourceId: string,
+  values: Pick<RouteObservation, "route_exists" | "known_hazard_on_route" | "accessible_for_person">,
+  source: string,
+  notes: string,
+): Promise<{ observation: RouteObservation; evaluation_invalidated: boolean }> {
+  return api("/api/incidents/" + incidentId + "/routes/" + resourceId + "/observation", {
+    method: "POST",
+    body: JSON.stringify({ ...values, source, notes: notes || null, coordinator_id: "coord-demo-001" }),
+  });
+}
+
+export async function evaluateRoute(incidentId: string, resourceId: string): Promise<RouteEvaluation> {
+  return api("/api/incidents/" + incidentId + "/routes/" + resourceId + "/evaluate", { method: "POST" });
 }
 
 // ---------------------------------------------------------------------------

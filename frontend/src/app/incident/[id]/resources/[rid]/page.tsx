@@ -2,16 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { authorizeManualOverride, getEvaluationsForIncident, EvaluationReport } from "@/lib/api";
+import { authorizeManualOverride, getEvaluationsForIncident, getRouteRecord, EvaluationReport, RouteRecord } from "@/lib/api";
 import { EvidencePanel } from "@/components/sahaya/EvidencePanel";
 import { Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { ManualOverrideDialog } from "@/components/sahaya/ManualOverrideDialog";
+import { RouteCompatibilityPanel } from "@/components/sahaya/RouteCompatibilityPanel";
 
 export default function ResourceDetailPage() {
   const { id, rid } = useParams() as { id: string; rid: string };
   const router = useRouter();
   const [report, setReport] = useState<EvaluationReport | null>(null);
+  const [routeRecord, setRouteRecord] = useState<RouteRecord | null>(null);
   const [overrideOpen, setOverrideOpen] = useState(false);
   const [overrideAuthorized, setOverrideAuthorized] = useState(false);
   const [overrideReason, setOverrideReason] = useState("");
@@ -19,9 +21,10 @@ export default function ResourceDetailPage() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await getEvaluationsForIncident(id);
+        const [res, route] = await Promise.all([getEvaluationsForIncident(id), getRouteRecord(id, rid)]);
         const match = res.evaluations.find(e => e.resource_id === rid);
         if (match) setReport(match);
+        setRouteRecord(route);
       } catch (err) {
         console.error(err);
       }
@@ -55,6 +58,7 @@ export default function ResourceDetailPage() {
         <h1 className="text-display mb-2">{report.resource_name}</h1>
 
         <EvidencePanel report={report} />
+        <RouteCompatibilityPanel incidentId={id} resourceId={rid} record={routeRecord} />
 
         <div className="mt-10 pt-8 border-t flex flex-col sm:flex-row gap-4 items-center justify-between">
           {isSafe ? (
