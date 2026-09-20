@@ -51,6 +51,7 @@ Audit timeline
 - Accessibility capacity: total places, accessible places, and caregiver places are independently recorded. General availability never substitutes for a required accessible or caregiver space.
 - QR Resource Passport: a QR code identifies a resource and opens its live passport with current capacity, capability evidence, freshness, provenance, version, and the existing coordinator verification flow. The QR contains no duplicate capability data.
 - Operations Map: a visual-only MapLibre + OpenStreetMap view of the recorded incident point and current resource verdicts. Markers link to existing evidence and Resource Passports; it does not calculate routes or dispatch decisions.
+- Route/hazard rule foundation: versioned route observations are evaluated separately for route existence, known hazards, person-specific accessibility, and observation freshness. A route verdict never rewrites a resource compatibility verdict.
 - Multi-person case support: each person has an independently reviewed requirement version; group decisions aggregate person × resource evidence with deterministic total, accessible, and caregiver capacity checks.
 - Resource-type applicability: shelters are evaluated for shelter capabilities; vehicles are evaluated only when accessible transport is required.
 - Resource verification workspace with YES / NO / UNKNOWN evidence, source, coordinator, timestamp, notes, freshness state, and a versioned resource record.

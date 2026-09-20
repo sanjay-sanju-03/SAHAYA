@@ -13,6 +13,7 @@ from app.models.incident import CasePerson, Incident
 from app.models.resource import Resource
 from app.models.evaluation import EvaluationReport, GroupEvaluation
 from app.models.audit import AuditLog
+from app.models.route import RouteEvaluation, RouteObservation
 from app.seed_data import DEMO_GROUP_INCIDENT, DEMO_GROUP_PEOPLE, SEED_RESOURCES, DEMO_INCIDENT
 
 # ---------------------------------------------------------------------------
@@ -35,6 +36,8 @@ _people: dict[str, dict[str, CasePerson]] = {
     DEMO_GROUP_INCIDENT.id: {person.id: person for person in DEMO_GROUP_PEOPLE},
 }
 _group_evaluations: dict[str, list[GroupEvaluation]] = {}
+_route_observations: dict[tuple[str, str], RouteObservation] = {}
+_route_evaluations: dict[tuple[str, str], RouteEvaluation] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -146,6 +149,56 @@ def invalidate_group_evaluations_for_resource(resource_id: str) -> list[str]:
     for incident_id in affected:
         invalidate_group_evaluations(incident_id, "Resource capabilities changed after this group evaluation.")
     return affected
+
+
+# ---------------------------------------------------------------------------
+# Route observations and evaluations
+# ---------------------------------------------------------------------------
+
+def get_route_observation(incident_id: str, resource_id: str) -> Optional[RouteObservation]:
+    return _route_observations.get((incident_id, resource_id))
+
+
+def save_route_observation(observation: RouteObservation) -> RouteObservation:
+    _route_observations[(observation.incident_id, observation.resource_id)] = observation
+    return observation
+
+
+def get_route_evaluation(incident_id: str, resource_id: str) -> Optional[RouteEvaluation]:
+    return _route_evaluations.get((incident_id, resource_id))
+
+
+def save_route_evaluation(evaluation: RouteEvaluation) -> RouteEvaluation:
+    _route_evaluations[(evaluation.incident_id, evaluation.resource_id)] = evaluation
+    return evaluation
+
+
+def invalidate_route_evaluation(incident_id: str, resource_id: str, reason: str) -> Optional[RouteEvaluation]:
+    evaluation = get_route_evaluation(incident_id, resource_id)
+    if evaluation:
+        evaluation.is_current = False
+        evaluation.outdated_reason = reason
+    return evaluation
+
+
+def invalidate_route_evaluations_for_incident(incident_id: str, reason: str) -> int:
+    affected = 0
+    for (stored_incident_id, _), evaluation in _route_evaluations.items():
+        if stored_incident_id == incident_id and evaluation.is_current:
+            evaluation.is_current = False
+            evaluation.outdated_reason = reason
+            affected += 1
+    return affected
+
+
+def invalidate_route_evaluations_for_resource(resource_id: str, reason: str) -> list[str]:
+    incidents: list[str] = []
+    for (incident_id, stored_resource_id), evaluation in _route_evaluations.items():
+        if stored_resource_id == resource_id and evaluation.is_current:
+            evaluation.is_current = False
+            evaluation.outdated_reason = reason
+            incidents.append(incident_id)
+    return incidents
 
 
 # ---------------------------------------------------------------------------

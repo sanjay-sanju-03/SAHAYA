@@ -51,6 +51,10 @@ class AuditAction(str, Enum):
     group_resource_evaluated = "group_resource_evaluated"
     group_capacity_checked = "group_capacity_checked"
     group_evaluation_invalidated = "group_evaluation_invalidated"
+    route_observation_updated = "route_observation_updated"
+    route_evaluation_started = "route_evaluation_started"
+    route_evaluated = "route_evaluated"
+    route_evaluation_invalidated = "route_evaluation_invalidated"
     manual_review_flagged = "manual_review_flagged"
 
 

@@ -31,6 +31,7 @@ from app.store.memory import (
     get_evaluations,
     get_incident,
     get_resource,
+    invalidate_route_evaluations_for_incident,
     list_resources,
     save_evaluations,
     save_incident,
@@ -240,6 +241,10 @@ async def update_requirement(incident_id: str, field: str, body: RequirementUpda
     # Any edit after review invalidates existing reports and demands a new
     # review confirmation before deterministic evaluation can run again.
     had_evaluations = bool(get_evaluations(incident_id))
+    invalidated_routes = invalidate_route_evaluations_for_incident(
+        incident_id,
+        "Reviewed requirements changed after this route evaluation.",
+    )
     clear_evaluations(incident_id)
     incident.requirements_review_started = True
     incident.requirements_reviewed = False
@@ -277,6 +282,14 @@ async def update_requirement(incident_id: str, field: str, body: RequirementUpda
             ActorType.system,
             AuditAction.evaluation_invalidated,
             "Previous resource evaluation invalidated because a reviewed requirement changed.",
+            {"field": field, "requirement_version": incident.requirement_version},
+        )
+    if invalidated_routes:
+        _audit(
+            incident_id,
+            ActorType.system,
+            AuditAction.route_evaluation_invalidated,
+            "Previous route evaluation invalidated because a reviewed requirement changed.",
             {"field": field, "requirement_version": incident.requirement_version},
         )
     return incident
@@ -330,6 +343,10 @@ async def analyze_incident(incident_id: str):
     incident.status = IncidentStatus.analyzing
     incident.updated_at = datetime.utcnow()
     clear_evaluations(incident_id)
+    invalidate_route_evaluations_for_incident(
+        incident_id,
+        "Incident analysis restarted after this route evaluation.",
+    )
     incident.requirements_reviewed = False
     incident.requirements_reviewed_at = None
     incident.requirements_reviewed_by = None

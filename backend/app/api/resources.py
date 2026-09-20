@@ -17,6 +17,7 @@ from app.store.memory import (
     get_resource,
     invalidate_evaluations_for_resource,
     invalidate_group_evaluations_for_resource,
+    invalidate_route_evaluations_for_resource,
     list_resources,
     save_resource,
 )
@@ -136,6 +137,18 @@ async def verify_resource(resource_id: str, body: ResourceVerificationRequest):
 
     affected_incidents = invalidate_evaluations_for_resource(resource_id)
     group_affected = invalidate_group_evaluations_for_resource(resource_id)
+    route_affected = invalidate_route_evaluations_for_resource(
+        resource_id,
+        "Resource capabilities changed after this route evaluation.",
+    )
+    for incident_id in route_affected:
+        append_audit(AuditLog(
+            incident_id=incident_id,
+            actor_type=ActorType.system,
+            action=AuditAction.route_evaluation_invalidated,
+            description=f"Route evaluation invalidated because {resource.name} changed.",
+            metadata={"resource_id": resource.id, "resource_version": resource.resource_version},
+        ))
     for incident_id in group_affected:
         append_audit(AuditLog(
             incident_id=incident_id,

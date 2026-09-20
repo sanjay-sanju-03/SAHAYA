@@ -8,6 +8,7 @@ Run with: cd backend && pytest tests/test_constraint_engine.py -v
 """
 import sys
 import os
+from datetime import datetime, timedelta
 
 # Ensure backend/app is on the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -21,6 +22,14 @@ from app.ai.clarifier import get_next_question
 from app.models.evaluation import EvaluationStatus, CheckStatus
 from app.models.incident import PersonProfile, MobilityType, AgeGroup
 from app.models.resource import Resource, ResourceCapabilities, ResourceType, ResourceStatus
+from app.models.route import RouteObservation
+from app.engine.route_engine import evaluate_route
+from app.store.memory import (
+    invalidate_route_evaluation,
+    invalidate_route_evaluations_for_incident,
+    invalidate_route_evaluations_for_resource,
+    save_route_evaluation,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -352,6 +361,90 @@ class TestCapacity:
         report = evaluate(person, resource, "test-incident")
         assert report.status == EvaluationStatus.blocked
         assert next(check for check in report.checks if check.constraint == "caregiver_capacity").status == CheckStatus.blocked
+
+
+# ---------------------------------------------------------------------------
+# Tests — Route / hazard compatibility (separate from resource decisions)
+# ---------------------------------------------------------------------------
+
+class TestRouteCompatibility:
+    def _observed_route(self, **updates) -> RouteObservation:
+        values = dict(
+            incident_id="test-incident",
+            resource_id="test-shelter",
+            route_exists=True,
+            known_hazard_on_route=False,
+            accessible_for_person=True,
+            source="Field inspection",
+            observed_at=datetime.utcnow(),
+        )
+        values.update(updates)
+        return RouteObservation(**values)
+
+    def test_fresh_accessible_hazard_free_route_is_safe(self):
+        report = evaluate_route(wheelchair_person(transport=False), shelter(), self._observed_route())
+        assert report.status == EvaluationStatus.safe
+
+    def test_known_hazard_blocks_route_without_changing_resource_rules(self):
+        report = evaluate_route(wheelchair_person(transport=False), shelter(), self._observed_route(known_hazard_on_route=True))
+        assert report.status == EvaluationStatus.blocked
+        assert next(check for check in report.checks if check.constraint == "route_hazard").status == CheckStatus.blocked
+
+    def test_missing_route_accessibility_is_unknown_for_wheelchair_user(self):
+        report = evaluate_route(wheelchair_person(transport=False), shelter(), self._observed_route(accessible_for_person=None))
+        assert report.status == EvaluationStatus.unknown
+
+    def test_stale_route_observation_is_unknown(self):
+        report = evaluate_route(
+            wheelchair_person(transport=False),
+            shelter(),
+            self._observed_route(observed_at=datetime.utcnow() - timedelta(hours=2)),
+        )
+        assert report.status == EvaluationStatus.unknown
+
+    def test_non_accessibility_case_does_not_require_route_accessibility_field(self):
+        report = evaluate_route(
+            ambulatory_person(),
+            shelter(),
+            self._observed_route(accessible_for_person=None),
+        )
+        assert report.status == EvaluationStatus.safe
+        assert all(check.constraint != "route_accessibility" for check in report.checks)
+
+    def test_requirement_resource_and_route_versions_each_invalidate_route_evaluation(self):
+        resource = shelter()
+        resource.id = "route-version-resource"
+        resource.resource_version = 1
+        person = wheelchair_person(transport=False)
+        observation = RouteObservation(
+            incident_id="route-version-incident",
+            resource_id=resource.id,
+            route_exists=True,
+            known_hazard_on_route=False,
+            accessible_for_person=True,
+            source="Field inspection",
+            observed_at=datetime.utcnow(),
+            route_version=1,
+        )
+
+        requirement_v1 = evaluate_route(person, resource, observation, requirement_version=1)
+        save_route_evaluation(requirement_v1)
+        assert requirement_v1.is_current is True
+        assert (requirement_v1.requirement_version, requirement_v1.resource_version, requirement_v1.route_version) == (1, 1, 1)
+
+        assert invalidate_route_evaluations_for_incident("route-version-incident", "Requirements changed.") == 1
+        assert requirement_v1.is_current is False
+
+        requirement_v2 = evaluate_route(person, resource, observation, requirement_version=2)
+        save_route_evaluation(requirement_v2)
+        assert invalidate_route_evaluations_for_resource(resource.id, "Resource changed.") == ["route-version-incident"]
+        assert requirement_v2.is_current is False
+
+        route_v2 = RouteObservation(**{**observation.model_dump(), "route_version": 2})
+        route_evaluation = evaluate_route(person, resource, route_v2, requirement_version=2)
+        save_route_evaluation(route_evaluation)
+        assert invalidate_route_evaluation("route-version-incident", resource.id, "Route changed.") is route_evaluation
+        assert route_evaluation.is_current is False
 
 
 # ---------------------------------------------------------------------------
