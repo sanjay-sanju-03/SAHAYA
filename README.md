@@ -50,6 +50,7 @@ Audit timeline
 - Evidence-based comparison of two to four resources. SAHAYA compares evidence; it never ranks or selects a “best” resource.
 - Accessibility capacity: total places, accessible places, and caregiver places are independently recorded. General availability never substitutes for a required accessible or caregiver space.
 - QR Resource Passport: a QR code identifies a resource and opens its live passport with current capacity, capability evidence, freshness, provenance, version, and the existing coordinator verification flow. The QR contains no duplicate capability data.
+- Operations Map: a visual-only MapLibre + OpenStreetMap view of the recorded incident point and current resource verdicts. Markers link to existing evidence and Resource Passports; it does not calculate routes or dispatch decisions.
 - Multi-person case support: each person has an independently reviewed requirement version; group decisions aggregate person × resource evidence with deterministic total, accessible, and caregiver capacity checks.
 - Resource-type applicability: shelters are evaluated for shelter capabilities; vehicles are evaluated only when accessible transport is required.
 - Resource verification workspace with YES / NO / UNKNOWN evidence, source, coordinator, timestamp, notes, freshness state, and a versioned resource record.
@@ -117,7 +118,7 @@ SAHAYA/
     │   ├── app/
     │   │   ├── page.tsx                # intake and guided demo entry
     │   │   ├── processing/page.tsx     # extraction progress
-    │   │   ├── incident/[id]/          # summary, review, people, group evidence, resources, audit
+    │   │   ├── incident/[id]/          # summary, review, map, people, group evidence, resources, audit
     │   │   ├── resource/[id]/           # live QR Resource Passport
     │   │   └── resource/[id]/verify/   # coordinator capability/capacity verification workspace
     │   ├── components/sahaya/          # evidence, cards, dialogs, timeline, status UI

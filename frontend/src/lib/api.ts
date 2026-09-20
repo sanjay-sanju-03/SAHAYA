@@ -42,6 +42,8 @@ export interface Incident {
   incident_type: string | null;
   urgency: string | null;
   location_text: string | null;
+  latitude: number | null;
+  longitude: number | null;
   person: PersonProfile;
   ai_person: PersonProfile;
   requirements_review_started: boolean;
@@ -68,6 +70,8 @@ export interface Resource {
   type: string;
   name: string;
   location_text: string | null;
+  latitude: number | null;
+  longitude: number | null;
   status: string;
   capacity: number | null;
   available_capacity: number | null;

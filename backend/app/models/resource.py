@@ -86,6 +86,8 @@ class Resource(BaseModel):
     type: ResourceType
     name: str
     location_text: Optional[str] = None
+    latitude: Optional[float] = Field(default=None, ge=-90, le=90)
+    longitude: Optional[float] = Field(default=None, ge=-180, le=180)
     status: ResourceStatus = ResourceStatus.available
 
     capacity: Optional[int] = None

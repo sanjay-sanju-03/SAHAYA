@@ -90,6 +90,7 @@ export default function ResourcesPage() {
         <p className="metric-label mb-2">RESOURCE EVALUATION · CASE {id.slice(0,8).toUpperCase()}</p>
         <h1 className="text-h1 mb-2">Available Resources</h1>
         <p className="text-gray-500">{sorted.length} resources evaluated against applicable case requirements.</p>
+        <Link href={"/incident/" + id + "/map"} className="btn-secondary inline-flex mt-4">OPEN OPERATIONS MAP</Link>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
