@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: sahaya-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: APP_ENV
+        value: production
+      - key: STORE_BACKEND
+        value: supabase
+      - key: OPENAI_MODEL
+        value: gpt-4o
+      - key: SAHAYA_ASSISTANT_USE_LLM
+        value: "true"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_SCHEMA
+        value: public
+      - key: CORS_ORIGINS
+        sync: false

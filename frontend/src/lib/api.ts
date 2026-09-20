@@ -267,6 +267,19 @@ export interface RouteRecord {
   evaluation: RouteEvaluation | null;
 }
 
+export interface AssistantAnswer {
+  answer: string;
+  language: "en" | "ml";
+  evidence: {
+    requirement_version: number;
+    resource_version: number;
+    route_version: number | null;
+    resource_evaluation_status: string | null;
+    route_evaluation_status: string | null;
+    evaluated_at: string | null;
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Fetch helper
 // ---------------------------------------------------------------------------
@@ -296,6 +309,23 @@ export async function createIncident(text: string, imageUrl?: string): Promise<I
 
 export async function getIncident(id: string): Promise<Incident> {
   return api<Incident>(`/api/incidents/${id}`);
+}
+
+export async function queryAssistant(
+  incidentId: string,
+  resourceId: string,
+  question: string,
+  language: "en" | "ml",
+): Promise<AssistantAnswer> {
+  return api<AssistantAnswer>("/api/assistant/query", {
+    method: "POST",
+    body: JSON.stringify({
+      incident_id: incidentId,
+      resource_id: resourceId,
+      question,
+      language,
+    }),
+  });
 }
 
 export async function getRequirements(id: string): Promise<{

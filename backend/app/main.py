@@ -20,13 +20,15 @@ from app.api.evaluations import router as evaluations_router
 from app.api.audio import router as audio_router
 from app.api.people import group_router, router as people_router
 from app.api.routes import router as routes_router
+from app.api.assistant import router as assistant_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup — seed data is loaded at import time in memory.py
+    # Startup — state is loaded by the configured repository at import time.
     print("SAHAYA backend starting up...")
     print(f"  OpenAI model: {os.getenv('OPENAI_MODEL', 'gpt-4o')}")
     print(f"  OpenAI key set: {'YES' if os.getenv('OPENAI_API_KEY') else 'NO — AI features degraded'}")
+    print(f"  State backend: {os.getenv('STORE_BACKEND', 'memory')}")
     yield
     print("SAHAYA backend shutting down.")
 
@@ -65,6 +67,7 @@ app.include_router(audio_router)
 app.include_router(people_router)
 app.include_router(group_router)
 app.include_router(routes_router)
+app.include_router(assistant_router)
 
 
 # ---------------------------------------------------------------------------
@@ -77,6 +80,7 @@ async def health():
         "status": "ok",
         "service": "SAHAYA API",
         "ai_available": bool(os.getenv("OPENAI_API_KEY")),
+        "storage_backend": os.getenv("STORE_BACKEND", "memory"),
         "version": "1.0.0",
     }
 

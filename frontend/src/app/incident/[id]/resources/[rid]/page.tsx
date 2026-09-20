@@ -8,6 +8,7 @@ import { Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { ManualOverrideDialog } from "@/components/sahaya/ManualOverrideDialog";
 import { RouteCompatibilityPanel } from "@/components/sahaya/RouteCompatibilityPanel";
+import { AskSahayaPanel } from "@/components/sahaya/AskSahayaPanel";
 
 export default function ResourceDetailPage() {
   const { id, rid } = useParams() as { id: string; rid: string };
@@ -57,6 +58,7 @@ export default function ResourceDetailPage() {
       <div className="card p-6 md:p-8">
         <h1 className="text-display mb-2">{report.resource_name}</h1>
 
+        <div className="flex justify-end"><AskSahayaPanel incidentId={id} resourceId={rid} /></div>
         <EvidencePanel report={report} />
         <RouteCompatibilityPanel incidentId={id} resourceId={rid} record={routeRecord} />
 

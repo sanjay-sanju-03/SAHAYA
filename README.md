@@ -52,6 +52,7 @@ Audit timeline
 - QR Resource Passport: a QR code identifies a resource and opens its live passport with current capacity, capability evidence, freshness, provenance, version, and the existing coordinator verification flow. The QR contains no duplicate capability data.
 - Operations Map: a visual-only MapLibre + OpenStreetMap view of the recorded incident point and current resource verdicts. Markers link to existing evidence and Resource Passports; it does not calculate routes or dispatch decisions.
 - Route/hazard rule foundation: versioned route observations are evaluated separately for route existence, known hazards, person-specific accessibility, and observation freshness. A route verdict never rewrites a resource compatibility verdict.
+- SAHAYA Assistant: a compact, read-only evidence assistant beside resource evidence. It answers from the structured case, resource, capacity, route, version, provenance, and audit snapshot; it cannot assign, override, verify, or change records.
 - Multi-person case support: each person has an independently reviewed requirement version; group decisions aggregate person × resource evidence with deterministic total, accessible, and caregiver capacity checks.
 - Resource-type applicability: shelters are evaluated for shelter capabilities; vehicles are evaluated only when accessible transport is required.
 - Resource verification workspace with YES / NO / UNKNOWN evidence, source, coordinator, timestamp, notes, freshness state, and a versioned resource record.
@@ -77,7 +78,7 @@ Any requirement or resource-verification change after evaluation invalidates pre
 - **Frontend:** Next.js 16, React 19, TypeScript, Tailwind CSS, Lucide icons.
 - **Backend:** FastAPI, Pydantic, Python deterministic constraint engine.
 - **AI:** OpenAI `gpt-4o` structured extraction and Whisper transcription.
-- **Storage:** In-memory data for the MVP/demo. Supabase configuration is reserved for future persistence.
+- **Storage:** Supabase persistence in production; deterministic in-memory fallback for local demos.
 
 ## Project structure
 
@@ -85,6 +86,9 @@ Any requirement or resource-verification change after evaluation invalidates pre
 SAHAYA/
 ├── .gitignore                         # excludes secrets, dependencies, caches, build output
 ├── README.md
+├── render.yaml                         # Render backend Blueprint
+├── supabase/
+│   └── migrations/                     # production persistence schema
 ├── backend/
 │   ├── .env.example                   # safe template; local .env is never committed
 │   ├── requirements.txt
@@ -94,12 +98,14 @@ SAHAYA/
 │   │   ├── ai/
 │   │   │   ├── extractor.py           # OpenAI → IncidentExtraction → PersonProfile
 │   │   │   ├── clarifier.py           # missing-information questions and answers
+│   │   │   ├── assistant.py            # read-only evidence-grounded assistant
 │   │   │   └── whisper.py             # audio transcription
 │   │   ├── api/
 │   │   │   ├── incidents.py           # single-person intake, evaluation, confirmation, audit
 │   │   │   ├── people.py              # people, per-person review, group evaluation, capacity
 │   │   │   ├── resources.py           # capability/capacity verification, provenance, freshness endpoints
 │   │   │   ├── evaluations.py         # evaluation lookup endpoints
+│   │   │   ├── assistant.py            # read-only assistant query endpoint
 │   │   │   └── audio.py               # transcription endpoint
 │   │   ├── engine/
 │   │   │   └── constraint_engine.py   # SAFE / UNKNOWN / BLOCKED / NOT APPLICABLE rules
@@ -107,13 +113,16 @@ SAHAYA/
 │   │   │   ├── incident.py            # incident, person, request schemas
 │   │   │   ├── resource.py            # capabilities, accessibility capacity, provenance, freshness
 │   │   │   ├── evaluation.py          # reports and verdict schemas
-│   │   │   └── audit.py               # auditable event schemas
+│   │   │   ├── audit.py               # auditable event schemas
+│   │   │   └── assistant.py           # assistant request/response schemas
 │   │   └── store/
-│   │       └── memory.py              # temporary in-memory store
+│   │       ├── memory.py              # repository API + local deterministic fallback
+│   │       └── supabase_store.py      # production JSONB persistence adapter
 │   └── tests/
 │       └── test_constraint_engine.py  # deterministic engine regression tests
 └── frontend/
     ├── .env.example                   # frontend environment template
+    ├── vercel.json                     # Vercel Next.js configuration
     ├── package.json
     ├── src/
     │   ├── app/
@@ -135,19 +144,19 @@ Requires Python 3.12+.
 
 ```bash
 cd backend
-python -m venv venv
+python -m venv .venv
 ```
 
 Windows:
 
 ```bash
-.\venv\Scripts\activate
+.\.venv\Scripts\activate
 ```
 
 macOS/Linux:
 
 ```bash
-source venv/bin/activate
+source .venv/bin/activate
 ```
 
 Create the local configuration file, install dependencies, and start the API:
@@ -179,6 +188,41 @@ For a QR code scanned from another device, set `NEXT_PUBLIC_APP_URL` in `fronten
 Set `OPENAI_API_KEY` in `backend/.env` for live AI extraction and transcription. Never commit this file; use [`backend/.env.example`](backend/.env.example) as the template.
 
 If no valid OpenAI key is available, SAHAYA visibly flags the report for manual review rather than treating unknown accessibility needs as absent. The guided demo works without live AI.
+
+## Deploy to Render + Vercel
+
+SAHAYA is configured for a Render FastAPI backend and a Vercel Next.js frontend. Browsers call the frontend's same-origin `/api` path; Vercel proxies it to Render using the server-only `BACKEND_URL` value. Do not set `NEXT_PUBLIC_API_URL` in production.
+
+### Supabase database
+
+1. Create a Supabase project.
+2. Open its SQL Editor and run the migration file at supabase/migrations/001_sahaya_state.sql.
+3. Copy the project URL and **service_role** key. Keep the service-role key private; it belongs only in Render.
+
+### Render backend
+
+1. In Render, choose **New → Blueprint** and select this repository. It uses [`render.yaml`](render.yaml).
+2. Add these secret environment variables:
+   - `OPENAI_API_KEY`: your OpenAI key.
+   - `CORS_ORIGINS`: the final Vercel origin, for example `https://your-app.vercel.app`.
+   - `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`: required for persistence. Keep the service-role key on Render only.
+3. Deploy and verify `https://<your-render-service>.onrender.com/health` returns `status: ok`.
+
+### Vercel frontend
+
+1. Import the same GitHub repository.
+2. Set **Root Directory** to `frontend`.
+3. Set these Production environment variables:
+   - `BACKEND_URL`: `https://<your-render-service>.onrender.com` (no trailing slash).
+   - `NEXT_PUBLIC_APP_URL`: the final Vercel URL; Resource Passport QR codes use it.
+   - Leave `NEXT_PUBLIC_API_URL` unset so the same-origin proxy is used.
+4. Deploy. If the Vercel URL differs from the value used above, update Render's `CORS_ORIGINS`.
+
+### Production check
+
+Open the deployed Vercel URL, run **Try Guided Demo**, and verify the flow `Vercel page → /api proxy → Render API`. Open Community Hall C, select **ASK SAHAYA**, and verify that a capacity answer includes its evidence/version footer.
+
+> **Persistence:** Render uses `STORE_BACKEND=supabase` from the Blueprint. The backend loads and writes incidents, resources, people, evaluations, routes, and audit logs through Supabase. A restart no longer clears live state after the SQL migration has been applied.
 
 ## Testing
 
@@ -213,6 +257,8 @@ The seeded resources deliberately show contrasting outcomes, including SAFE, UNK
 
 `demo-group-001` is the multi-person scenario. It contains a wheelchair user who cannot use stairs and requires hearing support, a person requiring caregiver support, and a person without active accessibility requirements. Group evaluation aggregates all person-resource decisions and checks total, accessible, and caregiver capacity separately.
 
-## MVP limitation
+## Production data behavior
 
-Cases are intentionally stored in memory for this prototype. Restarting the backend removes live cases, so create a new case after a restart or use `demo-001`. Replace `backend/app/store/memory.py` with persistent storage before real-world deployment.
+Local development defaults to `STORE_BACKEND=memory`, so restarting a local API resets non-seeded cases. Render uses `STORE_BACKEND=supabase`; after the migration and Render secrets are configured, incidents, reviewed requirements, resource verification, evaluations, route evidence, and audit records survive restarts.
+
+The browser never connects to Supabase directly. Keep `SUPABASE_SERVICE_ROLE_KEY` only in Render, never in Vercel or a client-side `NEXT_PUBLIC_*` variable.
