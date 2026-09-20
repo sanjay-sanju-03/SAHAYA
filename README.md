@@ -189,6 +189,16 @@ Set `OPENAI_API_KEY` in `backend/.env` for live AI extraction and transcription.
 
 If no valid OpenAI key is available, SAHAYA visibly flags the report for manual review rather than treating unknown accessibility needs as absent. The guided demo works without live AI.
 
+For local development with the frontend available on both the laptop and a phone on the same network, use the matching origins in `backend/.env`:
+
+```env
+APP_ENV=development
+CORS_ORIGINS=http://localhost:3000,http://192.168.1.43:3000
+STORE_BACKEND=memory
+```
+
+Replace `192.168.1.43` with the laptop's current LAN address. This local configuration is separate from Render production variables.
+
 ## Deploy to Render + Vercel
 
 SAHAYA is configured for a Render FastAPI backend and a Vercel Next.js frontend. Browsers call the frontend's same-origin `/api` path; Vercel proxies it to Render using the server-only `BACKEND_URL` value. Do not set `NEXT_PUBLIC_API_URL` in production.
