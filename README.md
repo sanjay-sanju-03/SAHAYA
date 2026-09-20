@@ -91,7 +91,9 @@ Recommended judge flow:
 
 ### Demo / Pitch Video
 
-**Add the public pitch-video link here before submitting the Google Form.** A focused 2–3 minute video should demonstrate the guided-demo flow and the distinction between AI interpretation, deterministic rules, and human confirmation.
+[Watch the SAHAYA demo / pitch video](https://drive.google.com/file/d/1XPAWHWl1wKnA6Ab6MJS56uqPr9TCaQeq/view?usp=sharing)
+
+The video demonstrates the guided-demo flow and the distinction between AI interpretation, deterministic rules, evidence, and human confirmation.
 
 ## Screenshots
 
